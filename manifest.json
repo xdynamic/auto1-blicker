@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "Otomoto Blicker",
+    "version": "2.0.1",
+    "description": "Auto1.com companion for Polish car dealers — compare prices with Otomoto.pl instantly",
+    "permissions": [],
+    "host_permissions": [
+        "https://*.auto1.com/*",
+        "https://*.otomoto.pl/*"
+    ],
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://*.auto1.com/*/merchant/car/*"
+            ],
+            "js": [
+                "otomoto-content.js"
+            ],
+            "css": [
+                "content.css"
+            ]
+        }
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    }
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Otomoto Blicker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 280px;
+      padding: 20px;
+      background: #0f111a;
+      color: #fff;
+      font-family: -apple-system, 'Inter', system-ui, sans-serif;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 900;
+      text-align: center;
+      background: linear-gradient(90deg, #00f2fe, #9d50bb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.6;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #00f5a0;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00f5a0;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .version {
+      font-size: 10px;
+      color: #555;
+      text-align: center;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="logo">Otomoto Blicker</div>
+  <div class="card">
+    <span class="dot"></span>Aktywny na auto1.com<br>
+    Otwórz stronę auta, aby zobaczyć panel porównania.
+  </div>
+  <div class="version">v2.0.1</div>
+</body>
+
+</html>
