@@ -6,9 +6,42 @@
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.action === "GET_OTOMOTO_STATS") {
         fetchOtomotoStats(request.url).then(sendResponse);
-        return true; // Keep message channel open for async response
+        return true;
+    }
+    if (request.action === "GET_OTOMOTO_STATS_ADVANCED") {
+        fetchAdvancedStats(request.url).then(sendResponse);
+        return true;
     }
 });
+
+/**
+ * Fetches true min and max by doing two requests if needed.
+ */
+async function fetchAdvancedStats(baseUrl) {
+    try {
+        // 1. Fetch first page with ASC sort (get MIN and COUNT)
+        const ascUrl = new URL(baseUrl);
+        ascUrl.searchParams.set("search[order]", "filter_float_price:asc");
+        const statsAsc = await fetchOtomotoStats(ascUrl.toString());
+        
+        if (!statsAsc) return null;
+
+        // 2. Fetch first page with DESC sort (get MAX)
+        const descUrl = new URL(baseUrl);
+        descUrl.searchParams.set("search[order]", "filter_float_price:desc");
+        const statsDesc = await fetchOtomotoStats(descUrl.toString());
+
+        return {
+            min: statsAsc.min,
+            max: statsDesc ? statsDesc.max : statsAsc.max,
+            avg: statsAsc.avg,
+            count: statsAsc.count
+        };
+    } catch (err) {
+        console.error('[OB background] fetchAdvancedStats failed:', err);
+        return null;
+    }
+}
 
 /**
  * Fetches raw HTML from an Otomoto search URL and extracts car prices.
