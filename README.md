@@ -1,33 +1,36 @@
 # 🚗 Otomoto Blicker
 
-> Rozszerzenie Chrome dla dealerów aut importujących pojazdy z **[Auto1.com](https://www.auto1.com)** do Polski.
+> Profesjonalne rozszerzenie Chrome dla dealerów samochodowych, optymalizujące import pojazdów z **[Auto1.com](https://www.auto1.com)** do Polski.
 
-Automatycznie wyświetla panel porównania cen z **Otomoto.pl** oraz kalkuluje opłaty Auto1 (2026) na każdej stronie pojazdu.
+Automatycznie wstrzykuje premium panel (Glassmorphism UI), który porównuje ceny na **Otomoto.pl**, kalkuluje pełne koszty Auto1 (All-Inclusive) w EUR i PLN oraz precyzyjnie generuje profesjonalne ścieżki filtrów.
 
 ---
 
-## 📸 Podgląd
+## 📸 Podgląd (v2.8+)
 
 ![Otomoto Blicker UI](./docs/screenshot.png)
+*Nowoczesny panel z dynamicznym przeliczaniem walut i kosztów całkowitych.*
 
 ---
 
-## ✨ Funkcje
+## ✨ Kluczowe Funkcje
 
 | Funkcja | Opis |
 |---|---|
-| 💶 **Opłaty Auto1 (2026)** | Automatyczna kalkulacja: Handling (289€) + Docs (159€) + Aukcja (progresywna wg ceny) |
-| 🔍 **Porównanie Otomoto.pl** | Pobiera min/max ceny z Otomoto dla tego samego modelu i rocznika |
-| 🔗 **Szybkie linki** | Jeden klik → Otomoto (sortowanie od najtańszej) lub Mobile.de |
-| 📍 **Dane akcyzy** | Wyświetla stawkę Akcyzy (3.1% / 18.6% / hybryda / elektryk) |
-| 🪄 **Minimizacja** | Panel zwijany do ikonki "OB" — stan zapamiętywany między stronami |
-| ⚡ **SPA-safe** | Działa bez odświeżania strony przy nawigacji po Auto1 |
+| 💎 **UI All-Inclusive** | Wyświetla cenę zakupu + wszystkie opłaty Auto1 w EUR oraz przeliczenie na PLN (live kurs). |
+| 💶 **Opłaty Auto1 (2026)** | Automatyczna kalkulacja: Handling (289€) + Docs (159€) + Aukcyjna (progresywna). |
+| 🎯 **Precision Mapping** | 100% dokładności dla BMW (GT/Series) i Mercedes-Benz (klasy SUV) dzięki zaawansowanym algorytmom scoringowym. |
+| 🔗 **Professional URLs** | Generuje ścieżki zgodne ze standardem Otomoto (np. `/seg-combi/`), co zapobiega gubieniu filtrów. |
+| 📈 **Market Insights** | Agreguje min/max ceny z Otomoto na podstawie unikalnych ogłoszeń dla konkretnego modelu i specyfikacji. |
+| 🪄 **Minimizacja** | Inteligentne zwijanie panelu do ikonki "OB" — stan zapamiętywany między sesjami. |
 
 ---
 
 ## 💶 Tabela opłat Auto1 (2026)
 
-| Cena auta | Opłata aukcyjna | Handling | Docs | **SUMA** |
+Rozszerzenie automatycznie stosuje poniższą taryfę:
+
+| Cena auta | Opłata aukcyjna | Handling | Docs | **SUMA OPŁAT** |
 |---|---|---|---|---|
 | ≤ 500 € | 99 € | 289 € | 159 € | **547 €** |
 | 501–1 000 € | 149 € | 289 € | 159 € | **597 €** |
@@ -39,97 +42,39 @@ Automatycznie wyświetla panel porównania cen z **Otomoto.pl** oraz kalkuluje o
 | 20 001–30 000 € | 749 € | 289 € | 159 € | **1 197 €** |
 | > 30 000 € | 849 € | 289 € | 159 € | **1 297 €** |
 
-> ℹ️ Tabela opłat nie zawiera transportu, rejestracji ani akcyzy.
-
 ---
 
-## 📦 Instalacja
+## 🛠️ Instalacja
 
 1. Pobierz lub sklonuj repozytorium:
    ```bash
    git clone https://github.com/twoj-nick/otomoto-blicker.git
    ```
-
 2. Otwórz Chrome i wejdź na `chrome://extensions`
-
 3. Włącz **Tryb deweloperski** (górny prawy róg)
-
 4. Kliknij **Załaduj rozpakowane** → wybierz folder `otomoto-blicker`
-
-5. Gotowe! Wejdź na dowolną stronę auta na `auto1.com`
-
----
-
-## 🗂️ Struktura projektu
-
-```
-otomoto-blicker/
-├── manifest.json          # Konfiguracja rozszerzenia (MV3)
-├── otomoto-content.js     # Główny skrypt wstrzykiwany na auto1.com
-├── background.js          # Service worker: pobiera dane z Otomoto (CORS bypass)
-├── content.css            # Style panelu (izolacja od strony hosta)
-└── popup.html             # Popup przy kliknięciu ikony rozszerzenia
-```
-
-### Jak to działa?
-
-```
-auto1.com (strona auta)
-       │
-       ▼
-otomoto-content.js          ← wstrzykiwany przez Chrome
-   │  scrapeAuto1()          → parsuje tytuł, tabelę spec, cenę
-   │  getAuto1Fees()         → kalkuluje opłaty wg tabeli 2026
-   │  getSearchUrls()        → buduje URL Otomoto + Mobile.de
-   │  injectUI()             → tworzy panel i dołącza do <body>
-   │
-   └─→ sendMessage(GET_OTOMOTO_STATS)
-             │
-             ▼
-       background.js         ← service worker (dostęp do sieci)
-          fetchOtomotoStats() → fetchuje HTML Otomoto, wyciąga ceny
-             │
-             └─→ { min, max, avg, count } → content script aktualizuje panel
-```
-
----
-
-## 🔒 Uprawnienia
-
-| Uprawnienie | Cel |
-|---|---|
-| `host: auto1.com` | Wstrzykiwanie skryptu na stronach aut |
-| `host: otomoto.pl` | Pobieranie cen przez service worker |
-
-> Rozszerzenie **nie zbiera żadnych danych** i nie komunikuje się z żadnymi serwerami poza auto1.com i otomoto.pl.
-
----
-
-## 🛠️ Technologie
-
-- **Manifest V3** (Chrome Extensions API)
-- Vanilla JS (zero dependencies)
-- Glassmorphism UI (inline styles, izolowane od hosta)
-- Background Service Worker z regex scraperem HTML
+5. Wejdź na dowolną ofertę na `auto1.com` — panel pojawi się automatycznie.
 
 ---
 
 ## 📝 Changelog
 
-### v2.0.1
-- Naprawiono generowanie URL Otomoto (tylko pierwsza część modelu, np. `v60`, nie pełny tytuł)
-- Dodano obsługę hybryd i elektryków w filtrach Otomoto
-- Naprawiono wstrzykiwanie przy nawigacji SPA
-- Usunięto nieużywane uprawnienia (`storage`, `cookies`)
-- Nowy CSS dopasowany do aktualnego UI
+### v2.8.4
+- **Numerical Precision**: BMW 5 GT nie jest już mylone z 3 GT (ścisłe dopasowanie numeru serii).
+- **Mercedes GLX Slugs**: Poprawione filtrowanie dla GLA, GLB, GLC, GLE, GLS (użycie profesjonalnego suffixu `-klasa`).
+- **Standardyzacja**: Uaktualnienie `otomoto_mapping.json` dla SUV-ów Mercedes-Benz.
 
-### v2.0.0
-- Całkowity przepis scraperów: 5 strategii dla ceny (DOM → JSON → text scan)
-- UI pojawia się nawet bez ceny (pokazuje "— EUR")
-- Przemianowano plik na `otomoto-content.js` (fix cache)
+### v2.8.3
+- **Shooting Brake**: Nowa logika wykrywania nadwozia kombi dla modeli Mercedes-Benz.
+- **URL Pathing**: Wprowadzenie `/seg-combi/` bezpośrednio w ścieżce URL dla BMW/Mercedes (zgodnie z SEO Otomoto).
 
-### v1.x
-- Pierwsza iteracja: minimizable UI, opłaty 2026, Otomoto stats
+### v2.8.0
+- **All-Incl UI**: Pierwsza wersja z pełnym wyliczeniem ceny końcowej w EUR i PLN.
+- **Glassmorphism**: Nowy, przezroczysty design panelu z efektami backdrop-blur.
+
+### v2.7.x
+- Naprawa filtrów paliwa (Diesel/Benzyna).
+- Nowy system scoringu dla modeli Audi (Allroad) i Volvo (XC series).
 
 ---
 
