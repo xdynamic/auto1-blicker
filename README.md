@@ -8,7 +8,7 @@ Automatycznie wstrzykuje premium panel (Glassmorphism UI), który porównuje cen
 
 ## 📸 Podgląd (v2.8+)
 
-![Otomoto Blicker UI](./docs/screenshot.png)
+![Otomoto Blicker UI](./docs/screenshot_v28.png)
 *Nowoczesny panel z dynamicznym przeliczaniem walut i kosztów całkowitych.*
 
 ---
