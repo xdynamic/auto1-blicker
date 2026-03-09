@@ -59,6 +59,11 @@ Rozszerzenie automatycznie stosuje poniższą taryfę:
 
 ## 📝 Changelog
 
+### v2.8.5
+- **Dynamic Fee Scraping**: Wydobywanie dokładnej opłaty aukcyjnej (`serviceFee`) bezpośrednio z danych JSON strony (`__NEXT_DATA__`).
+- **Country-Based Fees**: Automatyczne wykrywanie kraju auta i stosowanie stawek Handling/Docs z cennika 2026 (12 krajów).
+- **Precision Math**: 100% zgodności wyliczeń z rzeczywistym koszykiem Auto1.
+
 ### v2.8.4
 - **Numerical Precision**: BMW 5 GT nie jest już mylone z 3 GT (ścisłe dopasowanie numeru serii).
 - **Mercedes GLX Slugs**: Poprawione filtrowanie dla GLA, GLB, GLC, GLE, GLS (użycie profesjonalnego suffixu `-klasa`).

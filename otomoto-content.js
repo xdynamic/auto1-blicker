@@ -1,7 +1,7 @@
 // Content Script for Otomoto Blicker - v2.8.0 (All-Incl UI)
 
 (function () {
-  const VERSION = "2.8.4";
+  const VERSION = "2.8.5";
   const VERSION_TAG = "ALL-INCL";
   console.log(`%c OB v${VERSION} %c loaded `, "background:#ff00ea;color:#fff;font-weight:bold;", "background:#1e293b;color:#fff;");
 
@@ -118,6 +118,28 @@
       const qa = el.getAttribute('data-qa-id');
       parseSpecRow(qa, el.innerText);
     });
+
+    // ── Step 3: Extract internal JSON data (New in v2.8.5) ────────────────
+    let nextData = {};
+    try {
+        const script = document.getElementById('__NEXT_DATA__');
+        if (script) {
+            nextData = JSON.parse(script.textContent);
+        }
+    } catch (e) {}
+
+    const carDetails = nextData.props?.pageProps?.carDetails || {};
+    const auctionRunning = carDetails.auctionRunning || {};
+    
+    // Exact Service Fee from Auto1
+    if (auctionRunning.serviceFeeMinorUnits) {
+        data.serviceFeeEur = auctionRunning.serviceFeeMinorUnits / 100;
+        console.log(`[OB] Extracted Service Fee: ${data.serviceFeeEur} EUR`);
+    }
+
+    // Extract Country Code (e.g. DE, PL, NL)
+    data.country = carDetails.location?.countryCode || "DE";
+    console.log(`[OB] Car Location: ${data.country}`);
 
     // ── Step 4: Model Slug Mapping ────────────────────────────────────────
     if (otomotoMapping) {
@@ -265,36 +287,50 @@
         }
     }
 
-    // Secondary selector-based fallback if scoring failed
-    if (!data.priceEur) {
-        const priceSelectors = [
-            '.bid-value.minimumBid', '.bid-value', '[data-qa-id="current-bid-price"]',
-            '.buy-now-block__price-value', '[data-qa-id="listing-details-price"]',
-            '.price__main-value', '.price-value', '.CarDetails__price', '[class*="price-value"]', '[class*="PriceBlock"]'
-        ];
-        for (const sel of priceSelectors) {
-            const el = document.querySelector(sel);
-            if (el && !isCrossedOut(el)) {
-                const val = parseInt(el.innerText.replace(/[^\d]/g, ''));
-                if (val > 100) { data.priceEur = val; break; }
-            }
-        }
-    }
+    // Pass data forward
+    data.feesEur = getAuto1Fees(data.priceEur, data.country, data.serviceFeeEur);
+
     return data;
   }
 
-  function getAuto1Fees(priceEur) {
-    const base = 289 + 159; 
-    let auction = 849;
-    if (priceEur <= 500) auction = 99;
-    else if (priceEur <= 1000) auction = 149;
-    else if (priceEur <= 2500) auction = 249;
-    else if (priceEur <= 5000) auction = 349;
-    else if (priceEur <= 10000) auction = 449;
-    else if (priceEur <= 15000) auction = 549;
-    else if (priceEur <= 20000) auction = 649;
-    else if (priceEur <= 30000) auction = 749;
-    return base + auction;
+  function getAuto1Fees(priceEur, country, extractedServiceFee) {
+    const feeTable2026 = {
+        "AT": { h: 299, i: 159, g: 169 },
+        "BE": { h: 289, i: 119, g: 159 },
+        "DE": { h: 289, i: 119, g: 159 },
+        "DK": { h: 269, i: 129, g: 139 },
+        "ES": { h: 269, i: 199, g: 265 },
+        "FI": { h: 239, i: 119, g: 129 },
+        "FR": { h: 309, i: 99, g: 109 },
+        "IT": { h: 229, i: 339, g: 399 },
+        "NL": { h: 269, i: 109, g: 205 },
+        "PL": { h: 169, i: 79, g: 109 },
+        "PT": { h: 199, i: 209, g: 209 },
+        "SE": { h: 292, i: 89, g: 169 }
+    };
+
+    const fees = feeTable2026[country] || feeTable2026["DE"];
+    
+    // Docs choice: Grz if exported, Inl if same country
+    // Assuming the user is from PL, so if country !== PL, it's Grz
+    const docFee = (country === "PL") ? fees.i : fees.g;
+    
+    let auctionFee = extractedServiceFee;
+
+    // Fallback to table if scraping failed (Legacy 2026 fallback)
+    if (auctionFee === undefined) {
+        auctionFee = 849;
+        if (priceEur <= 500) auctionFee = 99;
+        else if (priceEur <= 1000) auctionFee = 149;
+        else if (priceEur <= 2500) auctionFee = 249;
+        else if (priceEur <= 5000) auctionFee = 349;
+        else if (priceEur <= 10000) auctionFee = 449;
+        else if (priceEur <= 15000) auctionFee = 549;
+        else if (priceEur <= 20000) auctionFee = 649;
+        else if (priceEur <= 30000) auctionFee = 749;
+    }
+
+    return fees.h + docFee + auctionFee;
   }
 
   function getSearchUrls(d) {
