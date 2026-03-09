@@ -30,11 +30,50 @@ Import aut z zagranicy wymaga szybkiej decyzji i precyzyjnych obliczeń. Nasze n
 
 ---
 
-## 🛠️ Jak to działa?
+## 💶 Tabela opłat Auto1 (2026)
 
-- **Instalacja**: Załaduj folder jako "rozpakowane rozszerzenie" w Chrome.
-- **Działanie**: Gdy otworzysz stronę dowolnego auta na Auto1, w prawym górnym rogu pojawi się dyskretny panel. 
-- **Waluty**: Rozszerzenie pobiera aktualne kursy, aby przeliczenia na PLN były zawsze bliskie rzeczywistości.
+Rozszerzenie automatycznie rozpoznaje kraj pochodzenia auta i dolicza odpowiednie koszty stałe (Handling + Dokumenty). Poniżej zestawienie stawek netto:
+
+| Kraj | Handling | Dokumenty (Eksport) | Dokumenty (Krajowe) |
+| :--- | :--- | :--- | :--- |
+| **Polska (PL)** | 169 € | 109 € | 79 € |
+| **Niemcy (DE)** | 289 € | 159 € | 119 € |
+| **Holandia (NL)** | 269 € | 205 € | 109 € |
+| **Belgia (BE)** | 289 € | 159 € | 119 € |
+| **Francja (FR)** | 309 € | 109 € | 99 € |
+| **Włochy (IT)** | 229 € | 399 € | 339 € |
+| **Hiszpania (ES)** | 269 € | 265 € | 199 € |
+| **Austria (AT)** | 299 € | 169 € | 159 € |
+
+> **Uwaga**: Opłata aukcyjna (*Auktionsgebühr*) jest zmienna i pobierana bezpośrednio z systemu Auto1 — rozszerzenie zawsze pokazuje ją zgodnie z rzeczywistością.
+
+---
+
+## ⚙️ Automatyczne Filtry (Co ustawiamy?)
+
+Klikając przycisk "Sprawdź Market", rozszerzenie otwiera Otomoto z już ustawionymi filtrami, aby wyniki były jak najbardziej trafne:
+- **Model & Marka**: Precyzyjne mapowanie (np. BMW 5 GT nie pomyli się z Serią 5).
+- **Rok produkcji**: Od rocznika auta do teraz (np. auto 2019 → filtruje 2019-2026).
+- **Paliwo**: Diesel, Benzyna, Hybryda lub Elektryk — zgodnie ze specyfikacją na Auto1.
+- **Nadwozie**: Automatyczne wykrywanie (Kombi, Sedan, SUV, Hatchback).
+- **Skrzynia biegów**: Tylko jeśli jest wyraźnie zaznaczona w specyfikacji.
+- **Stan**: Tylko auta nieuszkodzone.
+
+---
+
+## 🛠️ Instalacja Krok po Kroku
+
+1.  **Pobierz kod**: Kliknij zielony przycisk `Code` na górze strony i wybierz `Download ZIP`, a następnie rozpakuj go na dysku (lub użyj `git clone`).
+2.  **Otwórz Chrome**: Wpisz w pasku adresu `chrome://extensions/`.
+3.  **Tryb deweloperski**: Włącz przełącznik "Tryb deweloperski" w prawym górnym rogu.
+4.  **Załaduj rozszerzenie**: Kliknij przycisk "Załaduj rozpakowane" (Load unpacked) i wybierz folder `otomoto-blicker`.
+5.  **Gotowe**: Wejdź na Auto1.com, zaloguj się i otwórz dowolną ofertę. Panel pojawi się sam!
+
+---
+
+## 🪄 Skróty Klawiszowe & Porady
+- **Panel można zwijać**: Kliknij ikonkę "-" w prawym górnym rogu panelu, aby go zminimalizować do małego logo "OB".
+- **Odświeżanie**: Jeśli cena na Auto1 się zmieni (licytujesz), panel zaktualizuje wyliczenia "All-Incl" w czasie rzeczywistym.
 
 ---
 
