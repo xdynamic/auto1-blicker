@@ -1,84 +1,95 @@
-# 🚗 Otomoto Blicker (v2.8.5)
+# 🚗 Otomoto Blicker
 
-> **Otomoto Blicker** to profesjonalne rozszerzenie Chrome stworzone z myślą o polskich dealerach samochodowych licytujących na platformie **Auto1.com**. 
+> **Professional Chrome extension for Polish car dealers bidding on Auto1.com** — instantly compare auction prices with the Polish market on Otomoto.pl.
 
-### 💡 Po co to zrobiliśmy?
-Import aut z zagranicy wymaga szybkiej decyzji i precyzyjnych obliczeń. Nasze narzędzie eliminuje potrzebę ręcznego sprawdzania cen na Otomoto oraz wertowania tabel opłat. Wszystko, czego potrzebujesz do trafnej licytacji, widzisz bezpośrednio na stronie pojazdu.
-
----
-
-## 📸 Podgląd
-
-![Otomoto Blicker Premium UI](./docs/screenshot_v285_premium.png)
-*Panel automatycznie wstrzyknięty na stronę Auto1 (Lokalizacja DE, Mercedes GLA).*
+<div align="center">
+  <img src="./docs/screenshot_v300.png" alt="Otomoto Blicker v3.0 Panel" width="340" />
+</div>
 
 ---
 
-## ✨ Co robi to rozszerzenie?
+## ✨ What it does
 
-1.  **Cena "All-Inclusive" (EUR & PLN)**:
-    - Automatycznie sumuje cenę licytacji oraz wszystkie koszty dodatkowe (Handling + Dokumenty).
-    - **Ważne**: Rozszerzenie wie, że *Auktionsgebühr* (opłata aukcyjna) jest już zawarta w Twoim zakładanym budżecie/ofercie na stronie, więc dolicza jedynie brakujące koszty stałe.
-2.  **Inteligentny Cennik 2026**:
-    - Rozpoznaje kraj pochodzenia auta (np. Niemcy, Holandia, Hiszpania).
-    - Stosuje stawki z oficjalnego cennika **Auto1 2026** dla 12 krajów Europy.
-3.  **Błyskawiczny Research Rynkowy**:
-    - Pobiera statystyki z **Otomoto.pl** dla identycznego modelu i rocznika.
-    - Pokazuje Min/Max cenę rynkową w PLN, co pozwala natychmiast ocenić potencjalny zysk.
-4.  **Profesjonalne Linki**:
-    - Generuje precyzyjne ścieżki (np. `/seg-combi/`), które prowadzą prosto do filtrowanych wyników na Otomoto bez gubienia parametrów.
+When you open any car listing on Auto1.com, the extension injects a floating panel that:
 
----
-
-## 💶 Tabela opłat Auto1 (2026)
-
-Rozszerzenie automatycznie rozpoznaje kraj pochodzenia auta i dolicza odpowiednie koszty stałe (Handling + Dokumenty). Poniżej zestawienie stawek netto:
-
-| Kraj | Handling | Dokumenty (Eksport) | Dokumenty (Krajowe) |
-| :--- | :--- | :--- | :--- |
-| **Polska (PL)** | 169 € | 109 € | 79 € |
-| **Niemcy (DE)** | 289 € | 159 € | 119 € |
-| **Holandia (NL)** | 269 € | 205 € | 109 € |
-| **Belgia (BE)** | 289 € | 159 € | 119 € |
-| **Francja (FR)** | 309 € | 109 € | 99 € |
-| **Włochy (IT)** | 229 € | 399 € | 339 € |
-| **Hiszpania (ES)** | 269 € | 265 € | 199 € |
-| **Austria (AT)** | 299 € | 169 € | 159 € |
-
-> **Uwaga**: Opłata aukcyjna (*Auktionsgebühr*) jest zmienna i pobierana bezpośrednio z systemu Auto1 — rozszerzenie zawsze pokazuje ją zgodnie z rzeczywistością.
+| Feature | Description |
+|---|---|
+| 🎯 **Smart Matching** | Maps the Auto1 car to the correct Otomoto.pl model using a deep slug-mapping engine |
+| 💰 **All-In Price** | Calculates the total cost including Auto1 fees (Handling + Documents + VAT) based on the 2026 official price list |
+| 📊 **Market Stats** | Fetches live Min / Avg / Max prices from Otomoto.pl for the same model |
+| 🧮 **Calculator** | Built-in expression evaluator — type `40000/4.2-3000`, get an instant result |
+| 🌍 **12 Countries** | Handles Auto1 fees for DE, PL, AT, BE, DK, ES, FI, FR, IT, NL, PT, SE |
+| 💱 **Live EUR/PLN** | Fetches the current exchange rate from the **NBP API** (cached 1h) |
 
 ---
 
-## ⚙️ Automatyczne Filtry (Co ustawiamy?)
+## 🏗️ Architecture
 
-Klikając przycisk "Sprawdź Market", rozszerzenie otwiera Otomoto z już ustawionymi filtrami, aby wyniki były jak najbardziej trafne:
-- **Model & Marka**: Precyzyjne mapowanie (np. BMW 5 GT nie pomyli się z Serią 5).
-- **Rok produkcji**: Od rocznika auta do teraz (np. auto 2019 → filtruje 2019-2026).
-- **Paliwo**: Diesel, Benzyna, Hybryda lub Elektryk — zgodnie ze specyfikacją na Auto1.
-- **Nadwozie**: Automatyczne wykrywanie (Kombi, Sedan, SUV, Hatchback).
-- **Skrzynia biegów**: Tylko jeśli jest wyraźnie zaznaczona w specyfikacji.
-- **Stan**: Tylko auta nieuszkodzone.
-
----
-
-## 🛠️ Instalacja Krok po Kroku
-
-1.  **Pobierz kod**: Kliknij zielony przycisk `Code` na górze strony i wybierz `Download ZIP`, a następnie rozpakuj go na dysku (lub użyj `git clone`).
-2.  **Otwórz Chrome**: Wpisz w pasku adresu `chrome://extensions/`.
-3.  **Tryb deweloperski**: Włącz przełącznik "Tryb deweloperski" w prawym górnym rogu.
-4.  **Załaduj rozszerzenie**: Kliknij przycisk "Załaduj rozpakowane" (Load unpacked) i wybierz folder `otomoto-blicker`.
-5.  **Gotowe**: Wejdź na Auto1.com, zaloguj się i otwórz dowolną ofertę. Panel pojawi się sam!
-
----
-
-## 🪄 Skróty Klawiszowe & Porady
-- **Panel można zwijać**: Kliknij ikonkę "-" w prawym górnym rogu panelu, aby go zminimalizować do małego logo "OB".
-- **Odświeżanie**: Jeśli cena na Auto1 się zmieni (licytujesz), panel zaktualizuje wyliczenia "All-Incl" w czasie rzeczywistym.
+```
+Otomoto-Blicker/
+├── manifest.json               # Manifest V3
+├── otomoto_mapping.json        # Brand → model slug mapping (~700 models)
+├── data/
+│   └── auto1_fees_2026.json    # Official Auto1 2026 fee table
+└── src/
+    ├── content.js              # Entry point — orchestrates everything
+    ├── background.js           # Service worker: EUR rate + Otomoto fetcher
+    ├── core/
+    │   ├── scraper.js          # Extracts car data from Auto1 DOM
+    │   ├── matcher.js          # Matches to Otomoto slug (BMW, Mercedes, Audi, Volvo special rules)
+    │   ├── url-builder.js      # Builds filtered Otomoto URLs
+    │   └── fee-calculator.js   # Auto1 fee calculation + PLN conversion
+    ├── utils/
+    │   └── helpers.js          # Formatting, country normalization, DOM helpers
+    └── ui/
+        └── styles.css          # Premium dark UI (Inter font, card layout)
+```
 
 ---
 
-## ⚖️ Licencja & Bezpieczeństwo
+## 🚀 Installation
 
-Rozszerzenie działa lokalnie w Twojej przeglądarce. Nie przesyła danych o Twoich licytacjach na zewnętrzne serwery. 
+1. Clone or download this repository
+2. Open Chrome and go to `chrome://extensions/`
+3. Enable **Developer mode** (top right)
+4. Click **Load unpacked** → select the project folder
+5. Navigate to any car on [auto1.com/\*/merchant/car/\*](https://www.auto1.com)
+6. The panel appears automatically in the top-right corner ✅
 
-MIT © 2026 **Otomoto Blicker Team**
+---
+
+## 🔍 How matching works
+
+The extension uses a **two-pass matching algorithm**:
+
+1. **Variant pass** — checks for body type variants (Golf Variant → `golf-variant`, A4 Avant → `a4-avant`)
+2. **Base model pass** — brand-specific scoring rules:
+   - **BMW** — series number enforcement + GT/non-GT penalty
+   - **Mercedes** — letter class priority (`C-Klasse` → `c-klasa`)
+   - **Audi** — model code priority (`Q5`, `A6`)
+   - **Volvo** — prefix code matching (`XC60`, `V90`)
+
+---
+
+## 💡 What's new in v3.0
+
+- ⚡ **Modular architecture** — fully decoupled Scraper / Matcher / FeeCalc / UrlBuilder (Manifest V3)
+- 🖥️ **Loading skeleton** — panel shows immediately; stats fill in async
+- 🗺️ **All 12 countries** — complete country normalization (DE/PL/FR/IT/NL/ES/PT/SE/FI/DK/AT/BE)
+- 🧮 **Clean calculator** — shows plain numeric result, no cluttered labels
+- 🐛 **Better price validation** — Otomoto price parser requires 5 000–5 000 000 PLN range
+- 🔗 **Precise Otomoto URLs** — year ±1, mileage +40k, power ±10 KM filters baked in
+
+---
+
+## 🛡️ Privacy
+
+- Runs **100% locally** in your browser
+- Fetches data only from: `otomoto.pl`, `auto1.com`, `api.nbp.pl`
+- Zero external telemetry — no data is sent anywhere
+
+---
+
+## ⚖️ License
+
+MIT © 2026 **Otomoto Blicker**

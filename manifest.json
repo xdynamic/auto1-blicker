@@ -1,15 +1,18 @@
 {
     "manifest_version": 3,
     "name": "Otomoto Blicker",
-    "version": "2.8.5",
+    "version": "3.0.0",
     "description": "Auto1.com companion for Polish car dealers — compare prices with Otomoto.pl instantly",
-    "permissions": [],
+    "permissions": [
+        "storage"
+    ],
     "host_permissions": [
         "https://*.auto1.com/*",
-        "https://*.otomoto.pl/*"
+        "https://*.otomoto.pl/*",
+        "https://api.nbp.pl/*"
     ],
     "background": {
-        "service_worker": "background.js",
+        "service_worker": "src/background.js",
         "type": "module"
     },
     "content_scripts": [
@@ -18,10 +21,15 @@
                 "https://*.auto1.com/*/merchant/car/*"
             ],
             "js": [
-                "otomoto-content.js"
+                "src/utils/helpers.js",
+                "src/core/scraper.js",
+                "src/core/matcher.js",
+                "src/core/url-builder.js",
+                "src/core/fee-calculator.js",
+                "src/content.js"
             ],
             "css": [
-                "content.css"
+                "src/ui/styles.css"
             ]
         }
     ],
@@ -30,7 +38,12 @@
     },
     "web_accessible_resources": [
         {
-            "resources": [ "otomoto_mapping.json" ],
+            "resources": [
+                "otomoto_mapping.json",
+                "data/auto1_fees_2026.json",
+                "src/core/*.js",
+                "src/utils/*.js"
+            ],
             "matches": [ "https://*.auto1.com/*" ]
         }
     ]

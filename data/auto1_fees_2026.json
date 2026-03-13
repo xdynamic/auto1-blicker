@@ -1,0 +1,112 @@
+{
+  "version": "2026-01-01",
+  "countries": {
+    "PL": {
+      "name": "Polen",
+      "handling_domestic": 169.00,
+      "handling_cross_border": 79.00,
+      "documents": 109.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "DE": {
+      "name": "Deutschland",
+      "handling_domestic": 289.00,
+      "handling_cross_border": 119.00,
+      "documents": 159.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00],
+      "transport": {
+        "mobile_evaluation": 29.00,
+        "logistics_partner": 149.00,
+        "auto1_location": 29.00,
+        "partner_logistics_center": 0.00
+      }
+    },
+    "AT": {
+      "name": "Österreich",
+      "handling_domestic": 299.00,
+      "handling_cross_border": 159.00,
+      "documents": 169.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "BE": {
+      "name": "Belgien",
+      "handling_domestic": 289.00,
+      "handling_cross_border": 119.00,
+      "documents": 159.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "DK": {
+      "name": "Dänemark",
+      "handling_domestic": 269.00,
+      "handling_cross_border": 129.00,
+      "documents": 139.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "ES": {
+      "name": "Spanien",
+      "handling_domestic": 269.00,
+      "handling_cross_border": 199.00,
+      "documents": 265.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "FI": {
+      "name": "Finnland",
+      "handling_domestic": 239.00,
+      "handling_cross_border": 119.00,
+      "documents": 129.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "FR": {
+      "name": "Frankreich",
+      "handling_domestic": 309.00,
+      "handling_cross_border": 99.00,
+      "documents": 109.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "IT": {
+      "name": "Italien",
+      "handling_domestic": 229.00,
+      "handling_cross_border": 339.00,
+      "documents": 399.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "NL": {
+      "name": "Niederlande",
+      "handling_domestic": 269.00,
+      "handling_cross_border": 109.00,
+      "documents": 205.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "PT": {
+      "name": "Portugal",
+      "handling_domestic": 199.00,
+      "handling_cross_border": 209.00,
+      "documents": 209.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    },
+    "SE": {
+      "name": "Schweden",
+      "handling_domestic": 292.00,
+      "handling_cross_border": 89.00,
+      "documents": 169.00,
+      "second_wheel_set": 29.00,
+      "auction_fee_range": [0.00, 1950.00]
+    }
+  },
+  "notes": {
+    "vat": "Wszystkie kwoty netto, VAT doliczany zgodnie z przepisami",
+    "auction_fee": "Auktionsgebühr jest zawarta w cenie/ofercie i wyświetlana na stronie Auto1",
+    "transport": "Koszty transportu opcjonalne, zależne od wyboru kupującego"
+  }
+}
