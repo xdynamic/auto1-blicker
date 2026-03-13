@@ -3,7 +3,7 @@
 > **Professional Chrome extension for Polish car dealers bidding on Auto1.com** — instantly compare auction prices with the Polish market on Otomoto.pl.
 
 <div align="center">
-  <img src="./docs/screenshot_v300.png" alt="Otomoto Blicker v3.0 Panel" width="340" />
+  <img src="./docs/otomoto_blicker_v3.png" alt="Otomoto Blicker v3.0 Panel" width="800" />
 </div>
 
 ---
