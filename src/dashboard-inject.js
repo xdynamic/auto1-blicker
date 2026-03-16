@@ -25,15 +25,10 @@ function savePrice(stockNumber, priceEur) {
 // Scan DOM and extract stock+price pairs from dashboard cards
 function scanDOMPrices() {
   try {
-    // Find all dashboard card divs by CLASS (more reliable than id)
     const cardDivs = document.querySelectorAll('div.dashboardCard');
-    console.log('[OB] Found ' + cardDivs.length + ' dashboard cards');
-    
     let foundCount = 0;
     
     cardDivs.forEach(function(cardDiv) {
-      // Get stock number from id attribute of the main card container
-      // Walk up to find parent with id matching stock format
       let stockNumber = null;
       let parent = cardDiv;
       
@@ -46,51 +41,92 @@ function scanDOMPrices() {
         parent = parent.parentElement;
       }
       
-      if (!stockNumber) {
-        console.log('[OB] Could not find stock number in card parents');
-        return;
-      }
+      if (!stockNumber) return;
       
-      console.log('[OB] Found stock in card: ' + stockNumber);
-      
-      // Find price element INSIDE this card
-      // Structure: span[data-qa-id="bidValue"] > span.value-inner contains "1014 €"
       const priceSpan = cardDiv.querySelector('span[data-qa-id="bidValue"] .value-inner');
-      if (!priceSpan) {
-        console.log('[OB] No price span found for ' + stockNumber);
-        return;
-      }
+      if (!priceSpan) return;
       
-      // Extract price: "1014 €" or "11 118 €" or "12 940 €" (with spaces)
       const priceText = priceSpan.textContent.trim();
-      console.log('[OB] Price text for ' + stockNumber + ': "' + priceText + '"');
-      
-      // Match price with optional spaces between digit groups: 1014, 11 118, 12 940
       const priceMatch = priceText.match(/(\d+(?:\s\d+)*)\s*€/);
       
       if (priceMatch) {
-        // Remove all spaces from captured price
         const priceStr = priceMatch[1].replace(/\s/g, '');
         const priceEur = parseInt(priceStr);
         
-        // Sanity check: reasonable price range
         if (priceEur > 500 && priceEur < 500000) {
-          savePrice(stockNumber, priceEur);
-          foundCount++;
-          console.log('[OB] 💾 ' + stockNumber + ': ' + priceEur + '€');
+          // Get previous price from storage SYNCHRONOUSLY (we'll check if badge exists)
+          chrome.storage.local.get('ob_watchlist_' + stockNumber, function(data) {
+            const key = 'ob_watchlist_' + stockNumber;
+            const history = data[key] || [];
+            const lastPrice = history.length > 0 ? history[history.length - 1].price : null;
+            
+            // Save new price
+            savePrice(stockNumber, priceEur);
+            foundCount++;
+            
+            // Add badge with comparison
+            addPriceBadge(cardDiv, stockNumber, priceEur, lastPrice);
+          });
         }
       }
     });
     
-    console.log('[OB] Scan complete: extracted ' + foundCount + ' prices');
-    
     if (foundCount > 0) {
-      console.log('[OB] ✅ Extracted ' + foundCount + ' stock/price pairs');
+      console.log('[OB] Updated prices (' + foundCount + ')');
     }
   } catch (e) {
-    console.log('[OB] Scan error:', e.message);
-    console.log('[OB] Stack:', e.stack);
+    console.log('[OB] Error:', e.message);
   }
+}
+
+// Add visual price badge to card
+function addPriceBadge(cardDiv, stockNumber, currentPrice, lastPrice) {
+  // Remove old badge if exists
+  const oldBadge = cardDiv.querySelector('[data-ob-badge]');
+  if (oldBadge) oldBadge.remove();
+  
+  if (!lastPrice) return; // Only show badge if we have history
+  
+  let indicator = '→';
+  let change = 0;
+  
+  if (currentPrice > lastPrice) {
+    indicator = '↑';
+    change = currentPrice - lastPrice;
+  } else if (currentPrice < lastPrice) {
+    indicator = '↓';
+    change = lastPrice - currentPrice;
+  }
+  
+  // Find price value to insert badge next to it
+  const priceValueSpan = cardDiv.querySelector('span[data-qa-id="bidValue"]');
+  if (!priceValueSpan) return;
+  
+  // Create badge element
+  const badge = document.createElement('span');
+  badge.setAttribute('data-ob-badge', 'true');
+  badge.style.cssText = `
+    display: inline-block;
+    margin-left: 8px;
+    padding: 3px 8px;
+    background: #ff6b6b;
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+  `;
+  
+  if (indicator === '↑') {
+    badge.style.background = '#4caf50'; // Green for price up
+  } else if (indicator === '↓') {
+    badge.style.background = '#f44336'; // Red for price down
+  } else {
+    badge.style.background = '#2196f3'; // Blue for no change
+  }
+  
+  badge.textContent = indicator + ' ' + change + '€';
+  priceValueSpan.appendChild(badge);
 }
 
 // Try fetch interception (backup)
@@ -164,7 +200,7 @@ function setupObserver() {
   
   // Initial scan after delay (wait longer for React to load)
   setTimeout(function() {
-    console.log('[OB] Running initial scan (React should be loaded)...');
+    console.log('[OB] ✅ Scanning dashboard prices...');
     scanDOMPrices();
   }, 5000);
 }
