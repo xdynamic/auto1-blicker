@@ -39,6 +39,7 @@ Jeśli pracujesz w branży handlu samochodami, wiesz ile czasu zajmuje:
 | **💱 Kursy walut** | Pobiera aktualne kursy EUR/PLN z API NBP (odświeżane co godzinę) |
 | **🔄 Przełączanie rynków** | Łatwy switch między rynkiem polskim (Otomoto) a niemieckim (mobile.de) |
 | **⚙️ Automatyczne formatowanie** | Czytelne wyświetlanie cen i danych, gotowe do wzięcia do kalkulacji |
+| **📈 Śledzenie cen w watchliście** | Automatyczne monitorowanie zmian cen samochodów w watchliście Auto1 z wizualnymi wskaźnikami (↑↓→) |
 
 ---
 
@@ -80,7 +81,27 @@ Potem postępuj jak w wersji prostej pkt. 2 i 3 (użyj folderu `auto1-blicker`)
 
 ---
 
-## 📖 Jak Używać?
+## � Śledzenie Cen w Watchliście Auto1
+
+Wtyczka **automatycznie monitoruje zmiany cen** wszystkich samochodów w Twojej watchliście na Auto1 dashboard.
+
+### Jak to działa?
+- **Pobieranie cen**: Przecskan cen odbywa się co 0.5s automatycznie
+- **Wizualne wskaźniki**: Obok każdej ceny pojawia się kolor i symbol pokazujący zmianę:
+  - **🟢 ↑ XXX€** - cena w górę (wzrost)
+  - **🔴 ↓ XXX€** - cena w dół (spadek)
+  - **🔵 → 0€** - bez zmian
+- **Historia cen**: Ostatnie 50 zmian cen jest zapisywane w storage prześlędzarki
+- **Real-time**: Śledzenie działa w tle na stronie dashboarda
+
+### Gdzie to widzieć?
+1. Otwórz Auto1.com dashboard: https://www.auto1.com/pl/app/dashboard
+2. Przejdź do watchlisty
+3. Ceny wyświetlą się ze wskaźnikami zmian tuż obok wartości
+![Dashboard watchlist price tracking example](./docs/image.png)
+---
+
+## �📖 Jak Używać?
 
 ### Na Auto1.com (Rynek Polski - Otomoto)
 1. Otwórz jakąkolwiek ofertę samochodu na Auto1.com
