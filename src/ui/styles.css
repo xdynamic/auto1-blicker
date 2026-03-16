@@ -38,6 +38,7 @@
   padding: 14px 16px;
   background: linear-gradient(135deg, #1562d6 0%, #3b5bfc 100%);
   border-bottom: 1px solid rgba(255,255,255,0.1);
+  cursor: move;
 }
 
 .ob-logo {
@@ -80,6 +81,53 @@
   justify-content: center;
   transition: background 0.15s, border-color 0.15s;
   padding-bottom: 1px;
+}
+
+.ob-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ob-market-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+}
+
+.ob-market-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.85;
+  transition: background 0.15s, opacity 0.15s, transform 0.15s;
+}
+
+.ob-market-btn:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.ob-market-btn.active {
+  background: rgba(255,255,255,0.18);
+  opacity: 1;
+}
+
+.ob-market-btn:active {
+  transform: translateY(0);
 }
 
 .ob-minimize:hover {
@@ -329,7 +377,7 @@
   color: #506070;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 4px;
 }
 
@@ -337,6 +385,30 @@
   content: '●';
   color: #1a7f37;
   font-size: 8px;
+}
+
+.ob-footer-link {
+  color: #79c0ff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.ob-footer-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Messages (error / info) ───────────────────────────────────── */
+.ob-msg {
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+}
+
+.ob-msg-error {
+  color: #f87171;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.25);
 }
 
 /* ── Loading skeleton ────────────────────────────────────────────── */

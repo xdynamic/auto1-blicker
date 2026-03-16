@@ -5,6 +5,8 @@
       "name": "Polen",
       "handling_domestic": 169.00,
       "handling_cross_border": 79.00,
+      "documents_domestic": 79.00,
+      "documents_cross_border": 109.00,
       "documents": 109.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -13,6 +15,8 @@
       "name": "Deutschland",
       "handling_domestic": 289.00,
       "handling_cross_border": 119.00,
+      "documents_domestic": 119.00,
+      "documents_cross_border": 159.00,
       "documents": 159.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00],
@@ -27,6 +31,8 @@
       "name": "Österreich",
       "handling_domestic": 299.00,
       "handling_cross_border": 159.00,
+      "documents_domestic": 159.00,
+      "documents_cross_border": 169.00,
       "documents": 169.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -35,6 +41,8 @@
       "name": "Belgien",
       "handling_domestic": 289.00,
       "handling_cross_border": 119.00,
+      "documents_domestic": 119.00,
+      "documents_cross_border": 159.00,
       "documents": 159.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -43,6 +51,8 @@
       "name": "Dänemark",
       "handling_domestic": 269.00,
       "handling_cross_border": 129.00,
+      "documents_domestic": 129.00,
+      "documents_cross_border": 139.00,
       "documents": 139.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -51,6 +61,8 @@
       "name": "Spanien",
       "handling_domestic": 269.00,
       "handling_cross_border": 199.00,
+      "documents_domestic": 199.00,
+      "documents_cross_border": 265.00,
       "documents": 265.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -59,6 +71,8 @@
       "name": "Finnland",
       "handling_domestic": 239.00,
       "handling_cross_border": 119.00,
+      "documents_domestic": 119.00,
+      "documents_cross_border": 129.00,
       "documents": 129.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -67,6 +81,8 @@
       "name": "Frankreich",
       "handling_domestic": 309.00,
       "handling_cross_border": 99.00,
+      "documents_domestic": 99.00,
+      "documents_cross_border": 109.00,
       "documents": 109.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -75,6 +91,8 @@
       "name": "Italien",
       "handling_domestic": 229.00,
       "handling_cross_border": 339.00,
+      "documents_domestic": 339.00,
+      "documents_cross_border": 399.00,
       "documents": 399.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -83,6 +101,8 @@
       "name": "Niederlande",
       "handling_domestic": 269.00,
       "handling_cross_border": 109.00,
+      "documents_domestic": 109.00,
+      "documents_cross_border": 205.00,
       "documents": 205.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -91,6 +111,8 @@
       "name": "Portugal",
       "handling_domestic": 199.00,
       "handling_cross_border": 209.00,
+      "documents_domestic": 209.00,
+      "documents_cross_border": 209.00,
       "documents": 209.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]
@@ -99,6 +121,8 @@
       "name": "Schweden",
       "handling_domestic": 292.00,
       "handling_cross_border": 89.00,
+      "documents_domestic": 89.00,
+      "documents_cross_border": 169.00,
       "documents": 169.00,
       "second_wheel_set": 29.00,
       "auction_fee_range": [0.00, 1950.00]

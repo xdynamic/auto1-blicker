@@ -5,6 +5,8 @@
   'use strict';
 
   const VERSION = '3.0.0';
+  const AUTO1_FEES_PDF_URL = 'https://content.auto1.com/static/car_images/price_list_de_2026-01-01.pdf';
+  const STORAGE_KEY_MARKET = 'ob_market_mode';
   console.log(`%c OB v${VERSION} %c loaded `, 
     'background:#1562d6;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px;', 
     'background:#0d1117;color:#fff;padding:2px 6px;');
@@ -24,6 +26,81 @@
   const urlBuilder = new OtomotoUrlBuilder();
   let matcher, feeCalculator;
   let eurRate = 4.3;
+  let marketMode = 'PL';
+
+  const strings = {
+    PL: {
+      matchTitle: '🎯 Dopasowanie',
+      totalTitle: '💰 Cena całkowita',
+      calcTitle: '🧮 Kalkulator',
+      viewListing: 'Zobacz na Otomoto →',
+      pricesTitle: (count) => `📊 Ceny na Otomoto (${count} ofert)`,
+      pricesTitleNoCount: '📊 Ceny na Otomoto',
+      pricesFetchError: 'Nie udało się pobrać cen z Otomoto',
+      statMin: 'Min',
+      statAvg: 'Śred',
+      statMax: 'Max',
+      carLabel: 'Auto',
+      auto1FeesLabel: 'Opłaty Auto1',
+      totalEurLabel: 'Razem EUR',
+      totalPlnLabel: 'Razem PLN',
+      feesPdf: 'Tabela opłat Auto1 (PDF)',
+      rateLabel: (rate) => `1 EUR = ${rate.toFixed(2)} PLN`,
+      priceNotRead: '— (nie odczytano)',
+      feesNoTable: '— (brak cennika)',
+      errLoadData: 'Nie udało się załadować danych (mapping lub cennik).',
+      errScrape: 'Nie udało się odczytać danych auta ze strony.',
+      errFatal: 'Nie udało się załadować danych. Sprawdź konsolę (F12).'
+      ,
+      confHigh: '✓ Trafne',
+      confMedium: '~ Bliskie',
+      confLow: '? Ogólne'
+    },
+    DE: {
+      matchTitle: '🎯 Zuordnung',
+      totalTitle: '💰 Gesamtpreis',
+      calcTitle: '🧮 Rechner',
+      viewListing: 'Auf Mobile.de ansehen →',
+      pricesTitle: (count) => `📊 Preise auf Mobile.de (${count} Anzeigen)`,
+      pricesTitleNoCount: '📊 Preise auf Mobile.de',
+      pricesFetchError: 'Preise von Mobile.de konnten nicht geladen werden',
+      statMin: 'Min',
+      statAvg: 'Ø',
+      statMax: 'Max',
+      carLabel: 'Auto',
+      auto1FeesLabel: 'AUTO1 Gebühren',
+      totalEurLabel: 'Summe EUR',
+      feesPdf: 'AUTO1 Gebühren (PDF)',
+      priceNotRead: '— (nicht gelesen)',
+      feesNoTable: '— (keine Tabelle)',
+      errLoadData: 'Daten konnten nicht geladen werden (Mapping/Gebühren).',
+      errScrape: 'Fahrzeugdaten konnten nicht gelesen werden.',
+      errFatal: 'Laden fehlgeschlagen. Bitte Konsole öffnen (F12).'
+      ,
+      confHigh: '✓ Treffer',
+      confMedium: '~ Ähnlich',
+      confLow: '? Allgemein'
+    }
+  };
+
+  function t() {
+    return strings[marketMode] || strings.PL;
+  }
+
+  async function loadMarketMode() {
+    try {
+      const stored = await chrome.storage.local.get([STORAGE_KEY_MARKET]);
+      const mode = stored[STORAGE_KEY_MARKET];
+      marketMode = (mode === 'DE' || mode === 'PL') ? mode : 'PL';
+    } catch (_e) {
+      marketMode = 'PL';
+    }
+  }
+
+  async function setMarketMode(mode) {
+    marketMode = mode;
+    await chrome.storage.local.set({ [STORAGE_KEY_MARKET]: mode });
+  }
 
   // Załaduj dane
   async function loadData() {
@@ -60,8 +137,13 @@
   async function main() {
     Helpers.log('Starting analysis...');
 
+    await loadMarketMode();
+
     const loaded = await loadData();
-    if (!loaded) return;
+    if (!loaded) {
+      renderErrorPanel(t().errLoadData);
+      return;
+    }
 
     // Renderuj panel natychmiast ze stanem ładowania
     renderLoadingPanel();
@@ -73,6 +155,7 @@
 
     if (!carData.make || !carData.title) {
       Helpers.error('Failed to scrape car data');
+      renderErrorPanel(t().errScrape);
       return;
     }
 
@@ -87,19 +170,57 @@
     }
 
     const carLocation = Helpers.normalizeCountry(carData.location || 'DE');
-    const fees = feeCalculator.calculate(carLocation, 'DE', carData.priceEur, {
-      includeTransport: true,
-      hasSecondWheelSet: false
+    const buyerCountry = 'DE';
+    let fees = feeCalculator.calculate(carLocation, buyerCountry, carData.priceEur, {
+      includeTransport: false,
+      hasSecondWheelSet: !!carData.hasSecondWheelSet,
+      auctionFeeEur: carData.auctionFeeEur,
+      includeVat: false
     });
+    if (!fees) {
+      fees = feeCalculator.calculate(carLocation, 'DE', carData.priceEur, {
+        includeTransport: false,
+        hasSecondWheelSet: !!carData.hasSecondWheelSet,
+        auctionFeeEur: carData.auctionFeeEur,
+        includeVat: false
+      });
+    }
+    const feesUnavailable = !fees;
+    if (!fees) {
+      fees = {
+        total: 0,
+        breakdown: [],
+        subtotal: 0,
+        vat: 0
+      };
+    }
 
     const totalPrice = feeCalculator.calculateTotalPrice(carData.priceEur, fees);
-    const totalPricePln = feeCalculator.convertToPln(totalPrice.total, eurRate);
+    const totalPricePln = (marketMode === 'PL')
+      ? feeCalculator.convertToPln(totalPrice.total, eurRate)
+      : 0;
 
-    // Fetch cen z Otomoto
-    const priceStats = await fetchPricesFromOtomoto(otomotoUrl);
+    const listing = marketMode === 'DE'
+      ? { url: buildMobileUrl(carData, matchResult), market: 'mobile' }
+      : { url: otomotoUrl, market: 'otomoto' };
+
+    const priceStats = await (listing.market === 'mobile'
+      ? Promise.resolve(null) // tryb DE: tylko link, bez statystyk
+      : fetchPricesFromOtomoto(listing.url));
 
     // Renderuj pełny panel
-    renderPanel({ carData, matchResult, otomotoUrl, fees, totalPrice, totalPricePln, eurRate }, priceStats);
+    renderPanel({
+      carData,
+      matchResult,
+      otomotoUrl,
+      listingUrl: listing.url,
+      marketMode,
+      fees,
+      totalPrice,
+      totalPricePln,
+      eurRate,
+      feesUnavailable
+    }, priceStats);
   }
 
   async function fetchPricesFromOtomoto(url) {
@@ -109,6 +230,66 @@
         else resolve(prices);
       });
     });
+  }
+
+  async function fetchPricesFromMobile(url) {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: 'FETCH_MOBILE_PRICES', url }, (prices) => {
+        if (chrome.runtime.lastError) resolve({ error: true });
+        else resolve(prices);
+      });
+    });
+  }
+
+  function buildMobileUrl(carData, matchResult) {
+    const base = 'https://suchen.mobile.de/fahrzeuge/search.html';
+    const params = new URLSearchParams();
+    params.set('isSearchRequest', 'true');
+    params.set('vc', 'Car');
+    params.set('dam', 'false');
+    params.set('sfmr', 'false');
+    params.set('cn', 'DE');
+    params.set('s', 'Car');
+    params.set('sb', 'p');   // sort by price
+    params.set('od', 'up');  // ascending
+
+    const query = `${carData.make || ''} ${matchResult?.label || carData.model || ''}`.trim();
+    if (query) params.set('q', query);
+
+    const year = carData.year ? parseInt(carData.year, 10) : null;
+    if (year) {
+      params.set('fr', `${year - 1}:${year + 1}`);
+    }
+
+    if (carData.mileage) {
+      params.set('ml', `:${carData.mileage + 40000}`);
+    }
+
+    if (carData.fuel) {
+      const fuel = carData.fuel.toLowerCase();
+      const fuelMap = {
+        benzyna: 'PETROL',
+        diesel: 'DIESEL',
+        hybryda: 'HYBRID',
+        elektryczny: 'ELECTRICITY',
+        lpg: 'LPG'
+      };
+      const mapped = fuelMap[fuel];
+      if (mapped) params.set('ft', mapped);
+    }
+
+    if (carData.transmission) {
+      const trans = carData.transmission === 'automatic' ? 'AUTOMATIC_GEAR' : 'MANUAL_GEAR';
+      params.set('tr', trans);
+    }
+
+    if (carData.power) {
+      const from = Math.max(0, carData.power - 10);
+      const to = carData.power + 10;
+      params.set('pw', `${from}:${to}`);
+    }
+
+    return `${base}?${params.toString()}`;
   }
 
   // ── Loading skeleton panel ──────────────────────────────────────────
@@ -136,6 +317,7 @@
       </div>
     `;
     document.body.appendChild(panel);
+    makePanelDraggable(panel);
   }
 
   // ── Full panel ─────────────────────────────────────────────────────
@@ -147,28 +329,35 @@
     panel.id = 'ob-panel-v3';
     panel.className = 'ob-panel';
 
-    const statsHtml = priceStats ? `
+    const isDE = data.marketMode === 'DE';
+    const statsHtml = isDE
+      ? '' // tryb DE: tylko link, bez statystyk
+      : priceStats && priceStats.error
+        ? `<div class="ob-section"><div class="ob-section-title">${t().pricesTitleNoCount}</div><div class="ob-msg ob-msg-error">${t().pricesFetchError}</div></div>`
+        : priceStats
+          ? `
       <div class="ob-section">
-        <div class="ob-section-title">📊 Ceny na Otomoto (${priceStats.count} ofert)</div>
+        <div class="ob-section-title">${t().pricesTitle(priceStats.count)}</div>
         <div class="ob-stats-grid">
           <div class="ob-stat-card">
-            <div class="ob-stat-card-label">Min</div>
+            <div class="ob-stat-card-label">${t().statMin}</div>
             <div class="ob-stat-card-value min">${fmtPln(priceStats.min)}</div>
             <div class="ob-stat-card-sub">${fmtEur(priceStats.min, data.eurRate)}</div>
           </div>
           <div class="ob-stat-card">
-            <div class="ob-stat-card-label">Śred</div>
+            <div class="ob-stat-card-label">${t().statAvg}</div>
             <div class="ob-stat-card-value avg">${fmtPln(priceStats.avg)}</div>
             <div class="ob-stat-card-sub">${fmtEur(priceStats.avg, data.eurRate)}</div>
           </div>
           <div class="ob-stat-card">
-            <div class="ob-stat-card-label">Max</div>
+            <div class="ob-stat-card-label">${t().statMax}</div>
             <div class="ob-stat-card-value max">${fmtPln(priceStats.max)}</div>
             <div class="ob-stat-card-sub">${fmtEur(priceStats.max, data.eurRate)}</div>
           </div>
         </div>
       </div>
-    ` : '';
+    `
+          : '';
 
     panel.innerHTML = `
       <div class="ob-header">
@@ -177,55 +366,78 @@
           <span>Otomoto Blicker</span>
           <span class="ob-version">v${VERSION}</span>
         </div>
-        <button class="ob-minimize" id="ob-minimize" title="Zwiń panel">−</button>
+        <div class="ob-controls">
+          <div class="ob-market-toggle" role="group" aria-label="Market">
+            <button class="ob-market-btn ${data.marketMode === 'PL' ? 'active' : ''}" id="ob-market-pl" type="button" title="PL">🇵🇱</button>
+            <button class="ob-market-btn ${data.marketMode === 'DE' ? 'active' : ''}" id="ob-market-de" type="button" title="DE">🇩🇪</button>
+          </div>
+          <button class="ob-minimize" id="ob-minimize" title="Minimize">−</button>
+        </div>
       </div>
 
       <div class="ob-content" id="ob-content">
         <div class="ob-section">
-          <div class="ob-section-title">🎯 Dopasowanie</div>
+          <div class="ob-section-title">${t().matchTitle}</div>
           <div class="ob-match">
             <span class="ob-match-label">${data.matchResult.label}</span>
             <span class="ob-match-badge ${data.matchResult.confidence}">
-              ${data.matchResult.confidence === 'high' ? '✓ Trafne' : data.matchResult.confidence === 'medium' ? '~ Bliskie' : '? Ogólne'}
+              ${data.matchResult.confidence === 'high' ? t().confHigh : data.matchResult.confidence === 'medium' ? t().confMedium : t().confLow}
             </span>
           </div>
-          <a href="${data.otomotoUrl}" target="_blank" class="ob-link">
-            Zobacz na Otomoto →
+          <a href="${data.listingUrl}" target="_blank" class="ob-link">
+            ${t().viewListing}
           </a>
         </div>
 
         <div class="ob-section">
-          <div class="ob-section-title">💰 Cena całkowita</div>
+          <div class="ob-section-title">${t().totalTitle}</div>
           <div class="ob-price-grid">
-            <span class="ob-price-label">Auto</span>
-            <span class="ob-price-value">${Helpers.formatPrice(data.carData.priceEur, 'EUR')}</span>
-            <span class="ob-price-label">Opłaty Auto1</span>
-            <span class="ob-price-value">+ ${Helpers.formatPrice(data.fees.total, 'EUR')}</span>
+            <span class="ob-price-label">${t().carLabel}</span>
+            <span class="ob-price-value">${data.carData.priceEur === 0 ? t().priceNotRead : Helpers.formatPrice(data.carData.priceEur, 'EUR')}</span>
+            <span class="ob-price-label">${t().auto1FeesLabel}</span>
+            <span class="ob-price-value">${data.feesUnavailable ? t().feesNoTable : '+ ' + Helpers.formatPrice(data.fees.total, 'EUR')}</span>
             <div class="ob-price-divider"></div>
-            <span class="ob-price-label">Razem EUR</span>
-            <span class="ob-price-value total">${Helpers.formatPrice(data.totalPrice.total, 'EUR')}</span>
-            <span class="ob-price-label">Razem PLN</span>
-            <span class="ob-price-value pln">${Helpers.formatPrice(data.totalPricePln, 'PLN')}</span>
+            <span class="ob-price-label">${t().totalEurLabel}</span>
+            <span class="ob-price-value total">${data.totalPrice.total === 0 ? '—' : Helpers.formatPrice(data.totalPrice.total, 'EUR')}</span>
+            ${isDE ? '' : `
+              <span class="ob-price-label">${t().totalPlnLabel}</span>
+              <span class="ob-price-value pln">${data.totalPricePln === 0 ? '—' : Helpers.formatPrice(data.totalPricePln, 'PLN')}</span>
+            `}
           </div>
         </div>
 
         ${statsHtml}
 
         <div class="ob-section">
-          <div class="ob-section-title">🧮 Kalkulator</div>
+          <div class="ob-section-title">${t().calcTitle}</div>
           <div class="ob-calc">
-            <input id="ob-calc-input" class="ob-calc-input" type="text" placeholder="np. 40000/4.2-3000" spellcheck="false" autocomplete="off" />
+            <input id="ob-calc-input" class="ob-calc-input" type="text" placeholder="${data.marketMode === 'DE' ? 'z.B. 40000/4.2-3000' : 'np. 40000/4.2-3000'}" spellcheck="false" autocomplete="off" />
             <div id="ob-calc-result" class="ob-calc-result">—</div>
           </div>
         </div>
 
         <div class="ob-footer">
-          1 EUR = ${data.eurRate.toFixed(2)} PLN
+          <a href="${AUTO1_FEES_PDF_URL}" target="_blank" class="ob-footer-link">${t().feesPdf}</a>
+          ${isDE ? '' : `<span>${t().rateLabel(data.eurRate)}</span>`}
         </div>
       </div>
     `;
 
     document.body.appendChild(panel);
+    makePanelDraggable(panel);
+
+    const plBtn = document.getElementById('ob-market-pl');
+    const deBtn = document.getElementById('ob-market-de');
+    plBtn?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await setMarketMode('PL');
+      main();
+    });
+    deBtn?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await setMarketMode('DE');
+      main();
+    });
 
     document.getElementById('ob-minimize').addEventListener('click', () => {
       const content = document.getElementById('ob-content');
@@ -309,10 +521,76 @@
   function fmtPln(pln) {
     return Helpers.formatPrice(pln, 'PLN');
   }
+  function fmtEurAmount(eur) {
+    return Helpers.formatPrice(eur, 'EUR');
+  }
   function fmtEur(pln, rate) {
     return Helpers.formatPrice(Math.round(pln / rate), 'EUR');
   }
 
-  main().catch(error => Helpers.error('Fatal error:', error));
+  function renderErrorPanel(message) {
+    const old = document.getElementById('ob-panel-v3');
+    if (old) old.remove();
+    const panel = document.createElement('div');
+    panel.id = 'ob-panel-v3';
+    panel.className = 'ob-panel';
+    panel.innerHTML = `
+      <div class="ob-header">
+        <div class="ob-logo">
+          <span>🚗</span>
+          <span>Otomoto Blicker</span>
+          <span class="ob-version">v${VERSION}</span>
+        </div>
+      </div>
+      <div class="ob-content">
+        <div class="ob-section">
+          <div class="ob-msg ob-msg-error">${typeof message === 'string' ? message : 'Wystąpił błąd. Sprawdź konsolę.'}</div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(panel);
+    makePanelDraggable(panel);
+  }
+
+  // ── Draggable panel ────────────────────────────────────────────────
+  function makePanelDraggable(panel) {
+    const header = panel.querySelector('.ob-header');
+    if (!header) return;
+
+    let isDragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    header.addEventListener('mousedown', (event) => {
+      if (event.button !== 0) return;
+      if (event.target && event.target.closest && event.target.closest('button,a,input,select,textarea')) return;
+      isDragging = true;
+      const rect = panel.getBoundingClientRect();
+      offsetX = event.clientX - rect.left;
+      offsetY = event.clientY - rect.top;
+      panel.style.right = 'auto';
+      panel.style.left = `${rect.left}px`;
+      panel.style.top = `${rect.top}px`;
+      event.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (event) => {
+      if (!isDragging) return;
+      const x = event.clientX - offsetX;
+      const y = event.clientY - offsetY;
+      panel.style.left = `${Math.max(0, x)}px`;
+      panel.style.top = `${Math.max(0, y)}px`;
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+    });
+  }
+
+  main().catch(error => {
+    Helpers.error('Fatal error:', error);
+    renderErrorPanel(t().errFatal);
+  });
 
 })();

@@ -14,6 +14,8 @@ class Auto1Scraper {
       transmission: "",
       bodyType: "",
       priceEur: 0,
+      auctionFeeEur: null,
+      hasSecondWheelSet: false,
       stockNumber: "",
       location: "",
       title: ""
@@ -25,6 +27,8 @@ class Auto1Scraper {
     this.scrapeStockNumber();
     this.scrapeTechnicalData();
     this.scrapePrice();
+    this.scrapeAuctionFee();
+    this.detectSecondWheelSet();
     this.scrapeLocation();
     return this.data;
   }
@@ -225,6 +229,35 @@ class Auto1Scraper {
         this.data.location = value;
       }
     });
+  }
+
+  scrapeAuctionFee() {
+    // Best-effort: znajdź kwotę "Auktionsgebühr" / "Auction fee" / "aukcyjna" w tekście strony
+    const bodyText = document.body?.textContent || '';
+    const patterns = [
+      /Auktionsgebühr[:\s]*([\d.,]+)\s*€/i,
+      /Auction\s*fee[:\s]*([\d.,]+)\s*€/i,
+      /opłata\s*aukcyjna[:\s]*([\d.,]+)\s*€/i
+    ];
+
+    for (const re of patterns) {
+      const m = bodyText.match(re);
+      if (m && m[1]) {
+        const raw = m[1].replace(/\s/g, '').replace(',', '.');
+        const value = parseFloat(raw);
+        if (Number.isFinite(value) && value >= 0 && value <= 1950) {
+          this.data.auctionFeeEur = Math.round(value * 100) / 100;
+          return;
+        }
+      }
+    }
+  }
+
+  detectSecondWheelSet() {
+    // Conservative: tylko jeśli strona wprost wspomina o 2. zestawie kół/radsatz
+    const bodyText = (document.body?.textContent || '').toLowerCase();
+    const has = /\b(2\.\s*radsatz|zweiter\s*radsatz|second\s*wheel\s*set|drugi\s*zestaw\s*k[óo][łl])\b/i.test(bodyText);
+    this.data.hasSecondWheelSet = !!has;
   }
 }
 

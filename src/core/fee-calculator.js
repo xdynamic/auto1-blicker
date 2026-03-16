@@ -37,9 +37,15 @@ class Auto1FeeCalculator {
     });
 
     // 2. Dokumenten-Handling
-    result.documents = countryFees.documents;
+    const documentsDomestic = (typeof countryFees.documents_domestic === 'number')
+      ? countryFees.documents_domestic
+      : countryFees.documents;
+    const documentsCross = (typeof countryFees.documents_cross_border === 'number')
+      ? countryFees.documents_cross_border
+      : countryFees.documents;
+    result.documents = isDomestic ? documentsDomestic : documentsCross;
     result.breakdown.push({
-      name: 'Dokumenten-Handling',
+      name: isDomestic ? 'Dokumenten-Handling (inländisch)' : 'Dokumenten-Handling (grenzüberschreitend)',
       amount: result.documents,
       currency: 'EUR'
     });
@@ -66,10 +72,12 @@ class Auto1FeeCalculator {
 
     // 5. Auktionsgebühr (0-1950€)
     // UWAGA: Ta opłata jest zawarta w cenie/ofercie na Auto1
-    // Tutaj ustawiamy na 0, bo nie znamy dokładnej wartości
-    result.auctionFee = 0;
+    // Jeśli mamy wartość ze strony, użyj jej (netto).
+    result.auctionFee = (typeof options.auctionFeeEur === 'number' && Number.isFinite(options.auctionFeeEur))
+      ? options.auctionFeeEur
+      : 0;
     result.breakdown.push({
-      name: 'Auktionsgebühr (zawarta w cenie)',
+      name: 'Auktionsgebühr (laut AUTO1)',
       amount: result.auctionFee,
       currency: 'EUR',
       note: `Zakres: ${countryFees.auction_fee_range[0]}-${countryFees.auction_fee_range[1]} €`
@@ -79,10 +87,15 @@ class Auto1FeeCalculator {
     result.subtotal = result.handling + result.documents + result.transport + 
                       result.secondWheelSet + result.auctionFee;
 
-    // VAT (23% dla PL, różnie dla innych krajów)
-    const vatRate = this.getVatRate(buyerCountry);
-    result.vat = Math.round(result.subtotal * vatRate) / 100;
-    result.total = result.subtotal + result.vat;
+    // VAT: domyślnie NIE doliczamy (tabela AUTO1 jest netto).
+    if (options.includeVat) {
+      const vatRate = this.getVatRate(buyerCountry);
+      result.vat = Math.round(result.subtotal * vatRate) / 100;
+      result.total = result.subtotal + result.vat;
+    } else {
+      result.vat = 0;
+      result.total = result.subtotal;
+    }
 
     return result;
   }

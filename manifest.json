@@ -1,14 +1,16 @@
 {
     "manifest_version": 3,
-    "name": "Otomoto Blicker",
+    "name": "Auction Blicker",
     "version": "3.0.0",
-    "description": "Auto1.com companion for Polish car dealers — compare prices with Otomoto.pl instantly",
+    "description": "Auto1 price comparison & market intelligence for car dealers — compare prices with Otomoto.pl & mobile.de instantly",
     "permissions": [
         "storage"
     ],
     "host_permissions": [
         "https://*.auto1.com/*",
         "https://*.otomoto.pl/*",
+        "https://*.mobile.de/*",
+        "https://suchen.mobile.de/*",
         "https://api.nbp.pl/*"
     ],
     "background": {
@@ -18,7 +20,8 @@
     "content_scripts": [
         {
             "matches": [
-                "https://*.auto1.com/*/merchant/car/*"
+                "https://*.auto1.com/*/merchant/car/*",
+                "https://*.auto1.com/*/car/*"
             ],
             "js": [
                 "src/utils/helpers.js",

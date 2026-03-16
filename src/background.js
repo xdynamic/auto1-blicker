@@ -1,8 +1,14 @@
 // Background Service Worker - v3.0
-// Odpowiada za pobieranie kursu EUR/PLN z API NBP
+// Odpowiada za pobieranie kursu EUR/PLN z API NBP oraz cen z Otomoto i Mobile.de
 
 const CACHE_KEY = 'eur_pln_rate';
 const CACHE_DURATION = 3600000; // 1 godzina
+
+const OTOMOTO_CACHE_TTL = 5 * 60 * 1000; // 5 minut
+const otomotoPriceCache = new Map(); // url -> { data, timestamp }
+
+const MOBILE_CACHE_TTL = 5 * 60 * 1000; // 5 minut
+const mobilePriceCache = new Map(); // url -> { data, timestamp }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('[Background] Received message:', request.action);
@@ -23,6 +29,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }).catch(error => {
       console.error('[Background] Fetch error:', error);
       sendResponse(null);
+    });
+    return true;
+  }
+
+  if (request.action === 'FETCH_MOBILE_PRICES') {
+    console.log('[Background] Fetching Mobile.de prices for:', request.url);
+    fetchMobilePrices(request.url).then(prices => {
+      console.log('[Background] Sending Mobile.de prices:', prices);
+      sendResponse(prices);
+    }).catch(error => {
+      console.error('[Background] Mobile fetch error:', error);
+      sendResponse({ error: true });
     });
     return true;
   }
@@ -62,11 +80,22 @@ async function getEurRate() {
 // Fetch prices from Otomoto (cross-origin allowed in background)
 // Używa strategii ze starej wersji 2.8.5 - szuka JSON price i h3 z cenami
 async function fetchOtomotoPrices(url) {
+  const now = Date.now();
+  const cached = otomotoPriceCache.get(url);
+  if (cached && (now - cached.timestamp < OTOMOTO_CACHE_TTL)) {
+    console.log('[Background] Using cached Otomoto prices for:', url);
+    return cached.data;
+  }
+
   try {
     const response = await fetch(url, {
       headers: { 'Accept-Language': 'pl-PL,pl;q=0.9' }
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const errorResult = { error: true };
+      otomotoPriceCache.set(url, { data: errorResult, timestamp: now });
+      return errorResult;
+    }
 
     const html = await response.text();
     const prices = [];
@@ -89,17 +118,93 @@ async function fetchOtomotoPrices(url) {
       }
     }
 
-    if (prices.length === 0) return null;
-
-    return {
-      min: Math.min(...prices),
-      max: Math.max(...prices),
-      avg: Math.round(prices.reduce((a, b) => a + b, 0) / prices.length),
-      count: prices.length
-    };
+    let result;
+    if (prices.length === 0) {
+      result = null;
+    } else {
+      result = {
+        min: Math.min(...prices),
+        max: Math.max(...prices),
+        avg: Math.round(prices.reduce((a, b) => a + b, 0) / prices.length),
+        count: prices.length
+      };
+    }
+    otomotoPriceCache.set(url, { data: result, timestamp: now });
+    return result;
   } catch (err) {
     console.error('[OB background] fetch failed:', err);
-    return null;
+    const errorResult = { error: true };
+    otomotoPriceCache.set(url, { data: errorResult, timestamp: now });
+    return errorResult;
+  }
+}
+
+// Fetch prices from Mobile.de (best effort)
+async function fetchMobilePrices(url) {
+  const now = Date.now();
+  const cached = mobilePriceCache.get(url);
+  if (cached && (now - cached.timestamp < MOBILE_CACHE_TTL)) {
+    console.log('[Background] Using cached Mobile.de prices for:', url);
+    return cached.data;
+  }
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8'
+      }
+    });
+
+    if (!response.ok) {
+      const errorResult = { error: true };
+      mobilePriceCache.set(url, { data: errorResult, timestamp: now });
+      return errorResult;
+    }
+
+    const html = await response.text();
+    const jsonPrices = [];
+    const textPrices = [];
+
+    // Strategy 1: price JSON objects near "price" key
+    // e.g. "price":{"amount":12199,"currency":"EUR"}
+    const priceJsonRe = /"price"\s*:\s*\{[^}]*"amount"\s*:\s*(\d{3,8})[^}]*"currency"\s*:\s*"EUR"[^}]*\}/g;
+    let match;
+    while ((match = priceJsonRe.exec(html)) !== null) {
+      const v = parseInt(match[1], 10);
+      if (v >= 5000 && v <= 500000) jsonPrices.push(v);
+    }
+
+    // Strategy 2: HTML prices like "12.199 €" / "12 199 €"
+    const eurTextRe = /(\d{1,3}(?:[.\s\u00a0]\d{3})+)\s*€/g;
+    while ((match = eurTextRe.exec(html)) !== null) {
+      const v = parseInt(match[1].replace(/[.\s\u00a0]/g, ''), 10);
+      if (v >= 5000 && v <= 500000) textPrices.push(v);
+    }
+
+    // Prefer prices visible as "12.199 €" on listing cards
+    const basePrices = (textPrices.length >= 10) ? textPrices : (textPrices.length > 0 ? textPrices : jsonPrices);
+    const unique = Array.from(new Set(basePrices));
+
+    let result;
+    if (unique.length === 0) {
+      // could be blocked or simply no results; caller will treat null as "no stats"
+      result = null;
+    } else {
+      result = {
+        min: Math.min(...unique),
+        max: Math.max(...unique),
+        avg: Math.round(unique.reduce((a, b) => a + b, 0) / unique.length),
+        count: unique.length
+      };
+    }
+
+    mobilePriceCache.set(url, { data: result, timestamp: now });
+    return result;
+  } catch (err) {
+    console.error('[OB background] Mobile fetch failed:', err);
+    const errorResult = { error: true };
+    mobilePriceCache.set(url, { data: errorResult, timestamp: now });
+    return errorResult;
   }
 }
 

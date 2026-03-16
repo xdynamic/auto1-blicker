@@ -133,9 +133,10 @@ class OtomotoMatcher {
       // Specjalne dopasowanie dla Audi - priorytet dla kodów modeli (Q5, A6, A4) nad cechami
       if (makeLower === 'audi') {
         // Kody modeli Audi: A1-A8, Q1-Q8, e-tron, R8, TT, RS, S
-        const audiModelCodes = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 
+        // UWAGA: Nie traktujemy ogólnych cech jak "quattro", "s", "rs" jako modeli.
+        const audiModelCodes = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8',
                                 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8',
-                                'e-tron', 'r8', 'tt', 'rs', 's'];
+                                'e-tron', 'r8', 'tt'];
         
         // Sprawdź czy slug to kod modelu (np. 'q5', 'a6')
         const isModelCode = audiModelCodes.some(code => 
@@ -182,6 +183,22 @@ class OtomotoMatcher {
                 bestScore = score;
                 bestMatch = { slug, label, score };
               }
+            }
+          }
+        }
+      }
+
+      // Specjalne dopasowanie dla Mazda - preferuj "Mazda 6" / "Mazda 3" itd.
+      if (makeLower === 'mazda') {
+        const numeric = labelLower.match(/^\d{1,2}$/);
+        if (numeric) {
+          const num = numeric[0];
+          const mazdaNumPattern = new RegExp(`\\bmazda\\s+${num}\\b`, 'i');
+          if (mazdaNumPattern.test(titleLower)) {
+            const score = 70; // wyżej niż standardowy label-length score
+            if (score > bestScore) {
+              bestScore = score;
+              bestMatch = { slug, label, score };
             }
           }
         }
