@@ -1,5 +1,5 @@
-# ⚡ Auction Blicker
-## *Auto1 Price Comparison & Market Intelligence Tool*
+# ⚡ Auto1-Blicker
+## *Automatyczne porównanie cen Auto1 z Otomoto.pl i mobile.de*
 
 <div align="center">
   <img src="image.png" alt="Auction Blicker Panel - Polish Market" width="700" />
@@ -10,9 +10,9 @@
 
 # 🇵🇱 **POLSKI**
 
-## 📋 Czym jest Auction Blicker?
+## 📋 Czym jest Auto1-Blicker?
 
-**Auction Blicker** to rozszerzenie do przeglądarki Chrome, które automatycznie porównuje ceny samochodów z **Auto1.com** z lokalnym rynkiem (**Otomoto.pl** dla Polski, **mobile.de** dla Niemiec). 
+**Auto1-Blicker** to rozszerzenie do przeglądarki Chrome, które automatycznie porównuje ceny samochodów z **Auto1.com** z lokalnym rynkiem (**Otomoto.pl** dla Polski, **mobile.de** dla Niemiec). 
 
 ### 🎯 Dlaczego zostało stworzone?
 
@@ -23,7 +23,7 @@ Jeśli pracujesz w branży handlu samochodami, wiesz ile czasu zajmuje:
 - 💱 Przeliczanie walut (EUR → PLN)
 - 📊 Analiza rynku i wycena konkurencji
 
-**Auction Blicker** automatyzuje wszystkie te zadania w jednym panelu! 🚀
+**Auto1-Blicker** automatyzuje wszystkie te zadania w jednym panelu! 🚀
 
 ---
 
@@ -42,36 +42,41 @@ Jeśli pracujesz w branży handlu samochodami, wiesz ile czasu zajmuje:
 
 ---
 
-## 🚀 Szybka Instalacja
+## 🚀 Instalacja
 
-### Wymagania
+### 📌 Wersja prosta (dla każdego) - bez terminala!
+
+1. **Pobierz projekt:**
+   - Wejdź na: https://github.com/xdynamic/auto1-blicker
+   - Kliknij zielony przycisk **"Code"** → **"Download ZIP"**
+   - Rozpakuj plik ZIP na pulpicie (prawy klik → Rozpakuj)
+
+2. **Włóż do Chrome:**
+   - Otwórz Chrome i wpisz: **`chrome://extensions/`** w pasek adresu
+   - W **prawym górnym rogu** włącz **"Tryb dewelopera"**
+   - Kliknij **"Załaduj rozpakowane"**
+   - Wskaż folder **`auto1-blicker-main`** (ten co rozpakował się z ZIP)
+   - **Gotowe! 🎉**
+
+3. **Testuj:**
+   - Otwórz https://auto1.com/de/car/... (jakąkolwiek ofertę)
+   - Panel Auto1-Blickera pojawi się po prawej stronie
+
+---
+
+### 💻 Wersja zaawansowana (z terminala/Git)
+
+**Wymagania:**
 - Google Chrome (wersja 88+)
-- Dostęp do auto1.com
-- Dostęp do otomoto.pl lub mobile.de
+- Git zainstalowany
 
-### Kroki instalacji:
+**Kroki:**
+```bash
+git clone https://github.com/xdynamic/auto1-blicker.git
+cd auto1-blicker
+```
 
-1. **Sklonuj repozytorium:**
-   ```bash
-   git clone https://github.com/xdynamic/auction-blicker.git
-   cd auction-blicker
-   ```
-
-2. **Otwórz Chrome Extensions Manager:**
-   - Wpisz `chrome://extensions/` w pasek adresu
-   - Alternatywnie: Menu → Więcej narzędzi → Rozszerzenia
-
-3. **Włącz Tryb Dewelopera:**
-   - W prawym górnym rogu włącz toggle **"Tryb dewelopera"**
-
-4. **Załaduj rozpakowane rozszerzenie:**
-   - Kliknij przycisk **"Załaduj rozpakowane"**
-   - Wskaż folder z projektem (`auction-blicker`)
-   - Potwierdź
-
-5. **Gotowe! 🎉**
-   - Otwórz ofertę na [auto1.com/*/merchant/car/*](https://www.auto1.com)
-   - Panel Auction Blickera pojawi się automatycznie
+Potem postępuj jak w wersji prostej pkt. 2 i 3 (użyj folderu `auto1-blicker`)
 
 ---
 
@@ -86,7 +91,7 @@ Jeśli pracujesz w branży handlu samochodami, wiesz ile czasu zajmuje:
    - Pokaże statystyki cen (min/średnia/max)
    - Obliczy całkowity koszt z opłatami Auto1 i VAT
 
-### Na Auto1.com (Rynek Niemiecki - mobile.de) 
+### Na Auto1.com (pojawią się w panelu z przeliczeniami
 1. Ustaw tryb na **"DE"** (przycisk w panelu)
 2. Wtyczka będzie szukać na mobile.de
 3. ⚠️ **Ważne**: Na mobile.de musisz **ręcznie wybrać markę i model** na liście
@@ -115,14 +120,14 @@ Rozszerzenie jest **ciągle w opracowaniu**. Zawsze sprawdzaj czy:
 Opłaty mogą się zmienić! Zawsze sprawdzaj aktualny cennik:
 👉 **[Auto1 Cennik PDF (DE)](https://content.auto1.com/static/car_images/price_list_de_2026-01-01.pdf)**
 
-### 🐛 Problemy?
+### 🐛 Problemy?to1
 Jeśli coś nie działa:
 1. Przeładuj stronę (Ctrl+R)
 2. Wyłącz i włącz rozszerzenie w `chrome://extensions/`
 3. Sprawdź konsolę (F12 → Console) czy są błędy
 4. Otwórz issue na GitHub 👉 [Issues](https://github.com/xdynamic/auction-blicker/issues)
 
----
+--to1
 
 ## 🛠️ Architektura Projektu
 
@@ -175,9 +180,9 @@ MIT License - używaj swobodnie! 🎉
 4. W trybie DE - przeczytaj opis auta na mobile.de (mogą być „ukryte" problemy)
 
 ---
+to1-Blicker?
 
----
-
+**Auto1-
 # 🇩🇪 **DEUTSCH**
 
 ## 📋 Was ist Auction Blicker?
@@ -188,7 +193,7 @@ MIT License - używaj swobodnie! 🎉
 
 Wenn Sie im Autohandel arbeiten, wissen Sie wie viel Zeit vergeht:
 - ⏱️ Preise verschiedener Fahrzeuge vergleichen
-- 🖱️ Filter manuell auf mobile.de und Otomoto eingeben
+- 🖱to1-er manuell auf mobile.de und Otomoto eingeben
 - 🧮 Marge und Kosten kalkulieren
 - 💱 Wechselkurse konvertieren (EUR → PLN)
 - 📊 Markt analysieren und Preise kalkulieren
@@ -207,36 +212,40 @@ Wenn Sie im Autohandel arbeiten, wissen Sie wie viel Zeit vergeht:
 | **🧮 Expressions-Rechner** | Eingebauter Taschenrechner: `40000/4.2-3000` - kalkuliert Margen, Service, etc. |
 | **🌍 Über 12 Länder** | Unterstützt offizielle Auto1-Gebühren für: DE, PL, AT, BE, DK, ES, FI, FR, IT, NL, PT, SE |
 | **💱 Wechselkurse** | Holt aktuelle EUR/PLN Kurse von Polnischer Nationalbank API (aktualisiert stündlich) |
-| **🔄 Markt-Umschaltung** | Einfacher Switch zwischen deutschem (mobile.de) und polnischem (Otomoto) Markt |
-| **⚙️ Automatische Formatierung** | Lesbare Darstellung von Preisen und Daten, bereit für die Kalkulation |
+| **🔄Installation
+
+### 📌 Einfache Variante (für alle) - ohne Terminal!
+
+1. **Projekt herunterladen:**
+   - Gehe zu: https://github.com/xdynamic/auto1-blicker
+   - Klicke auf grünen **"Code"** Button → **"Download ZIP"**
+   - Entpacke die ZIP-Datei auf den Desktop (Rechtsklick → Entpacken)
+
+2. **In Chrome laden:**
+   - Öffne Chrome und gib ein: **`chrome://extensions/`** in der Adressleiste
+   - Schalte rechts oben den **"Entwicklermodus"** ein
+   - Klicke **"Entpackte Erweiterung laden"**
+   - Wähle den Ordner **`auto1-blicker-main`** (den aus der ZIP)
+   - **Fertig! 🎉**
+
+3. **Ausprobieren:**
+   - Öffne https://auto1.com/de/car/... (irgendein Auto-Angebot)
+   - Auto1-Blicker Panel erscheint rechts
 
 ---
 
-## 🚀 Schnelle Installation
+### 💻 Fortgeschrittene Variante (mit Git Terminal)
 
-### Anforderungen
+**Voraussetzungen:**
 - Google Chrome (Version 88+)
-- Zugriff auf auto1.com
-- Zugriff auf mobile.de oder otomoto.pl
+- Git installiert
 
-### Installationsschritte:
+```bash
+git clone https://github.com/xdynamic/auto1-blicker.git
+cd auto1-blicker
+```
 
-1. **Repository klonen:**
-   ```bash
-   git clone https://github.com/xdynamic/auction-blicker.git
-   cd auction-blicker
-   ```
-
-2. **Chrome Extensions Manager öffnen:**
-   - Geben Sie `chrome://extensions/` in die Adressleiste ein
-   - Oder: Menü → Weitere Tools → Erweiterungen
-
-3. **Entwicklermodus aktivieren:**
-   - Schalten Sie den Toggle **"Entwicklermodus"** (oben rechts) ein
-
-4. **Entpackte Erweiterung laden:**
-   - Klicken Sie auf **"Entpackte Erweiterung laden"**
-   - Wählen Sie den Projektordner (`auction-blicker`)
+Dann Punkt 2 & 3 von oben (nutze Ordner `auto1-blicker`))
    - Bestätigen Sie
 
 5. **Fertig! 🎉**
@@ -281,7 +290,7 @@ Die Erweiterung ist **noch in Entwicklung**. Überprüfen Sie immer, ob:
 - Auto1-Gebühren sind aktuell ab **01. Januar 2026**
 - Wechselkurse aktualisieren sich stündlich ab der Polnischen Nationalbank API
 
-### 💰 Auto1-Gebühren
+### 💰 Auto1-Gebührento1
 Die Gebühren können sich ändern! Checken Sie immer den aktuellen Tarif:
 👉 **[Auto1 Gebührenordnung PDF](https://content.auto1.com/static/car_images/price_list_de_2026-01-01.pdf)**
 
