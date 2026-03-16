@@ -91,7 +91,7 @@ Potem postępuj jak w wersji prostej pkt. 2 i 3 (użyj folderu `auto1-blicker`)
    - Pokaże statystyki cen (min/średnia/max)
    - Obliczy całkowity koszt z opłatami Auto1 i VAT
 
-### Na Auto1.com (pojawią się w panelu z przeliczeniami
+### Na Auto1.com (Rynek Niemiecki - mobile.de)
 1. Ustaw tryb na **"DE"** (przycisk w panelu)
 2. Wtyczka będzie szukać na mobile.de
 3. ⚠️ **Ważne**: Na mobile.de musisz **ręcznie wybrać markę i model** na liście
@@ -256,20 +256,31 @@ Dann Punkt 2 & 3 von oben (nutze Ordner `auto1-blicker`))
 
 ## 📖 Wie Man Es Benutzt
 
-### Auf Auto1.com (Deutscher Markt - mobile.de)
+### ✅ Auf Auto1.com (Deutscher Markt - mobile.de) - VOLLAUTOMATISCH
+
 1. Öffnen Sie ein beliebiges Fahrzeug-Angebot auf Auto1.com
 2. Das Panel erscheint auf der rechten Seite
 3. Die Erweiterung **automatisch**:
    - Liest Marke, Modell, Jahr, Laufleistung, Motor aus
-   - Sucht das Auto auf mobile.de
+   - **Sucht automatisch** ähnliche Autos auf mobile.de
    - Zeigt Preisstatistiken (min/durchschnitt/max)
    - Berechnet Gesamtkosten mit Auto1-Gebühren und MwSt
+   - Zeigt fertige Links zu ähnlichen Angeboten
 
-### Auf Auto1.com (Polnischer Markt - Otomoto)
+### ⚠️ Auf Auto1.com (Polnischer Markt - Otomoto) - BEGRENZTE UNTERSTÜTZUNG
+
+**Status**: In diesem Modus müssen Sie mehr manuell tun
+
 1. Stellen Sie den Modus auf **"PL"** ein (Button im Panel)
-2. Die Erweiterung sucht auf Otomoto.pl
-3. Der Rest wird **vollautomatisch** berechnet
-4. Alle Preise werden mit dem aktuellen Wechselkurs in EUR angezeigt
+2. **MANUELL** öffnen Sie ein neues Tab: https://www.otomoto.pl
+3. **MANUELL** suchen Sie das Auto (wählen Sie Marke und Modell)
+4. Das Auto1-Blicker Panel wird:
+   - ✅ Preise von otomoto.pl laden (grob matching)
+   - ✅ Preise mit AUTO1-Gebühren berechnen
+   - ✅ Marktstatistiken zeigen
+5. Alle Daten werden mit aktuellem EUR-Kurs in EUR angezeigt
+
+**Warum begrenzt?** Otomoto.pl hat starke Sicherheit gegen Automatisierung - man kann Suchparameter nicht direkt senden
 
 ---
 
@@ -297,7 +308,7 @@ Die Gebühren können sich ändern! Checken Sie immer den aktuellen Tarif:
 ### 🐛 Probleme?
 Falls etwas nicht funktioniert:
 1. Laden Sie die Seite neu (Ctrl+R)
-2. Deaktivieren und aktivieren Sie die Erweiterung in `chrome://extensions/`
+2.to1tivieren und aktivieren Sie die Erweiterung in `chrome://extensions/`
 3. Überprüfen Sie die Konsole (F12 → Console) auf Fehler
 4. Öffnen Sie ein Issue auf GitHub 👉 [Issues](https://github.com/xdynamic/auction-blicker/issues)
 
@@ -350,7 +361,7 @@ MIT Lizenz - verwenden Sie es frei! 🎉
 ### 🔍 Best Practices:
 1. Lesen Sie **immer** das vollständige mobile.de Angebot (Historie, Fotos, Beschreibung)
 2. **Verifizieren Sie immer** den EUR-Kurs bei Ihrer Bank
-3. Reservieren Sie einen Puffer für unerwartete Kosten (Transport, Dokumente, etc.)
+3. Reservieren Sie einen Puffer für unerwto1-blicker)** • **[Report Bug](https://github.com/xdynamic/auto1
 4. Im PL-Modus - prüfen Sie die Otomoto-Beschreibung auf "versteckte" Probleme
 
 ---

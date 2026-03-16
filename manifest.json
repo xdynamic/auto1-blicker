@@ -34,6 +34,14 @@
             "css": [
                 "src/ui/styles.css"
             ]
+        },
+        {
+            "matches": [
+                "https://*.auto1.com/*/merchant-dashboard/*"
+            ],
+            "js": [
+                "src/dashboard-track.js"
+            ]
         }
     ],
     "action": {

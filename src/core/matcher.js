@@ -6,7 +6,7 @@ class OtomotoMatcher {
     this.mapping = mapping;
   }
 
-  async match(make, title) {
+  async match(make, title, carData = {}) {
     const makeData = this.mapping[make];
     
     if (!makeData || !makeData.models) {
@@ -15,10 +15,13 @@ class OtomotoMatcher {
     }
 
     const titleLower = title.toLowerCase();
+    const bodyType = carData.bodyType ? carData.bodyType.toLowerCase() : '';
+    console.log(`[Matcher] Matching ${make} "${title}" (bodyType="${bodyType}")`);
     
     // KROK 1: Sprawdź czy istnieje dokładny wariant
-    const variantMatch = this.findVariant(makeData.models, titleLower);
+    const variantMatch = this.findVariant(makeData.models, titleLower, carData);
     if (variantMatch) {
+      console.log(`[Matcher] Found variant: ${variantMatch.slug} (${variantMatch.label})`);
       return {
         slug: variantMatch.slug,
         label: variantMatch.label,
@@ -28,7 +31,7 @@ class OtomotoMatcher {
     }
 
     // KROK 2: Sprawdź podstawowy model
-    const baseMatch = this.findBaseModel(makeData.models, titleLower, make);
+    const baseMatch = this.findBaseModel(makeData.models, titleLower, make, carData);
     if (baseMatch) {
       return {
         slug: baseMatch.slug,
@@ -41,17 +44,30 @@ class OtomotoMatcher {
     return null;
   }
 
-  findVariant(models, titleLower) {
+  findVariant(models, titleLower, carData = {}) {
     // Warianty mają zwykle dodatkowy człon (np. "golf-variant", "a4-avant")
     const variantKeywords = [
       'variant', 'avant', 'allroad', 'touring', 'sportsvan', 
       'alltrack', 'outdoor', 'cabrio', 'coupe', 'gt'
     ];
+    const bodyType = carData.bodyType ? carData.bodyType.toLowerCase() : '';
 
     for (const [slug, label] of Object.entries(models)) {
       // Sprawdź czy slug zawiera wariant
       const hasVariantKeyword = variantKeywords.some(kw => slug.includes(kw));
       if (!hasVariantKeyword) continue;
+
+      // Filtruj warianty na podstawie body type
+      if (bodyType === 'sedan') {
+        if (slug.includes('avant') || slug.includes('allroad') || slug.includes('sportsvan')) {
+          continue; // Pomiń kombi dla sedanów
+        }
+      }
+      if (bodyType === 'combi') {
+        if (slug.includes('limousine') && !slug.includes('avant') && !slug.includes('allroad')) {
+          continue; // Pomiń limousine dla kombis
+        }
+      }
 
       // Sprawdź czy tytuł zawiera ten wariant
       const slugParts = slug.split('-');
@@ -73,10 +89,11 @@ class OtomotoMatcher {
     return null;
   }
 
-  findBaseModel(models, titleLower, make) {
+  findBaseModel(models, titleLower, make, carData = {}) {
     let bestMatch = null;
     let bestScore = 0;
     const makeLower = (make || '').toLowerCase();
+    const bodyType = carData.bodyType ? carData.bodyType.toLowerCase() : '';
 
     // Sortuj modele po długości labela (najdłuższe pierwsze)
     const sortedModels = Object.entries(models).sort((a, b) => {
@@ -86,9 +103,31 @@ class OtomotoMatcher {
     for (const [slug, label] of sortedModels) {
       const labelLower = label.toLowerCase();
       
+      // Filtruj warianty na podstawie body type
+      if (bodyType === 'sedan') {
+        if (slug.includes('avant') || slug.includes('allroad') || slug.includes('sportsvan')) {
+          continue; // Pomiń kombi dla sedanów
+        }
+      }
+      if (bodyType === 'combi') {
+        if (slug.includes('limousine') && !slug.includes('avant') && !slug.includes('allroad')) {
+          continue; // Pomiń limousine dla kombis
+        }
+      }
+      
       // Dokładne dopasowanie labela (polska nazwa)
       if (titleLower.includes(labelLower)) {
-        const score = labelLower.length * 10;
+        let score = labelLower.length * 10;
+        
+        // Boost score dla wariantów kombi/sedanu w zależności od bodyType
+        if (bodyType === 'combi' && slug.includes('avant')) {
+          score += 100; // Highest preference for Avant in combis
+        } else if (bodyType === 'combi' && slug.includes('allroad')) {
+          score += 50; // Lower preference for Allroad (still a combi but less common)
+        } else if (bodyType === 'sedan' && slug.includes('limousine')) {
+          score += 50; // Prefer limousine for sedans
+        }
+        
         if (score > bestScore) {
           bestScore = score;
           bestMatch = { slug, label, score };
@@ -144,13 +183,26 @@ class OtomotoMatcher {
         );
         
         if (isModelCode) {
+          // Nie dopasowuj agresywnie wersji e-tron, jeśli tytuł nie zawiera tej nazwy
+          if (slug.includes('e-tron') && !titleLower.includes('e-tron')) {
+            continue;
+          }
+
           // Wyciągnij bazowy kod z labela (np. "Q5" z "Q5 Sportback")
           const baseCode = label.split(/[\s\-]/)[0].toLowerCase();
           // Szukaj kodu jako osobnego słowa w tytule
           const codePattern = new RegExp(`\\b${baseCode}\\b`, 'i');
           
           if (codePattern.test(titleLower)) {
-            const score = 60; // Wyższy score dla kodu modelu Audi
+            let score = 60; // Wyższy score dla kodu modelu Audi
+            
+            // Boost score dla wariantów w zależności od bodyType
+            if (bodyType === 'combi' && slug.includes('avant')) {
+              score += 100; // Highest preference for Avant in combis
+            } else if (bodyType === 'sedan' && slug.includes('limousine')) {
+              score += 50; // Prefer limousine for sedans
+            }
+            
             if (score > bestScore) {
               bestScore = score;
               bestMatch = { slug, label, score };

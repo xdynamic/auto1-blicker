@@ -30,6 +30,7 @@ class Auto1Scraper {
     this.scrapeAuctionFee();
     this.detectSecondWheelSet();
     this.scrapeLocation();
+    console.log('[OB Scraper] Extracted data:', this.data);
     return this.data;
   }
 
@@ -113,9 +114,38 @@ class Auto1Scraper {
         
         if (label && value) {
           this.parseSpecRow(label, value);
+          // Spróbuj detectować body type z wartości w tabeli
+          this.detectBodyTypeFromSpec(label, value);
         }
       }
     });
+  }
+
+  detectBodyTypeFromSpec(label, value) {
+    // Tylko jeśli body type nie został jeszcze ustawiony z tytułu
+    if (this.data.bodyType) return;
+    
+    const valueLower = value.toLowerCase();
+    
+    // Szukaj body type w labelach: "Body Type", "Typ pojazdu", "Rodzaj nadwozia", "Karosserie" itp.
+    if (label.includes('body') || label.includes('typ') || label.includes('nadwozia') ||
+        label.includes('karosserie') || label.includes('carrosserie') || 
+        label.includes('tipo') || label.includes('tipo di')) {
+      
+      // Sprawdź wartość
+      if (valueLower.includes('combi') || valueLower.includes('estate') || 
+          valueLower.includes('wagon') || valueLower.includes('avant') ||
+          valueLower.includes('break') || valueLower.includes('kombi')) {
+        this.data.bodyType = 'combi';
+        console.log(`[OB Scraper] Detected combi from "${label}": "${value}"`);
+      } else if (valueLower.includes('sedan') || valueLower.includes('limousine')) {
+        this.data.bodyType = 'sedan';
+        console.log(`[OB Scraper] Detected sedan from "${label}": "${value}"`);
+      } else if (valueLower.includes('hatchback') || valueLower.includes('htb')) {
+        this.data.bodyType = 'hatchback';
+        console.log(`[OB Scraper] Detected hatchback from "${label}": "${value}"`);
+      }
+    }
   }
 
   parseSpecRow(label, value) {
