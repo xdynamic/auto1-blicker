@@ -299,7 +299,29 @@ Dann Punkt 2 & 3 von oben (nutze Ordner `auto1-blicker`))
 
 ---
 
-## 📖 Wie Man Es Benutzt
+## � Watchlist-Preisüberwachung auf Auto1 Dashboard
+
+Die Erweiterung **überwacht automatisch die Preisänderungen** aller Fahrzeuge in Ihrer Auto1 Watchlist auf dem Dashboard.
+
+### Wie funktioniert es?
+- **Preisabruf**: Preise werden automatisch alle 0,5 Sekunden gescannt
+- **Visuelle Indikatoren**: Neben jedem Preis erscheint eine Farbe und ein Symbol, das die Änderung zeigt:
+  - **🟢 ↑ XXX€** - Preis gestiegen (Anstieg)
+  - **🔴 ↓ XXX€** - Preis gefallen (Rückgang)
+  - **🔵 → 0€** - Keine Änderung
+- **Preishistorie**: Die letzten 50 Preisänderungen werden im Browser-Speicher gespeichert
+- **Echtzeit**: Die Überwachung läuft im Hintergrund auf der Dashboard-Seite
+
+### Wo kann ich das sehen?
+1. Öffnen Sie das Auto1.com Dashboard: https://www.auto1.com/de/app/dashboard
+2. Gehen Sie zur Watchlist
+3. Sie sehen die Preise mit Änderungsindikatoren neben den Werten
+
+![Dashboard watchlist price tracking example](docs/image.png)
+
+---
+
+## �📖 Wie Man Es Benutzt
 
 ### ✅ Auf Auto1.com (Deutscher Markt - mobile.de) - VOLLAUTOMATISCH
 
