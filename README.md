@@ -98,7 +98,7 @@ Wtyczka **automatycznie monitoruje zmiany cen** wszystkich samochodów w Twojej 
 1. Otwórz Auto1.com dashboard: https://www.auto1.com/pl/app/dashboard
 2. Przejdź do watchlisty
 3. Ceny wyświetlą się ze wskaźnikami zmian tuż obok wartości
-![Dashboard watchlist price tracking example](./docs/image.png)
+![Dashboard watchlist price tracking example](docs/image.png)
 ---
 
 ## �📖 Jak Używać?
@@ -233,7 +233,31 @@ Wenn Sie im Autohandel arbeiten, wissen Sie wie viel Zeit vergeht:
 | **🧮 Expressions-Rechner** | Eingebauter Taschenrechner: `40000/4.2-3000` - kalkuliert Margen, Service, etc. |
 | **🌍 Über 12 Länder** | Unterstützt offizielle Auto1-Gebühren für: DE, PL, AT, BE, DK, ES, FI, FR, IT, NL, PT, SE |
 | **💱 Wechselkurse** | Holt aktuelle EUR/PLN Kurse von Polnischer Nationalbank API (aktualisiert stündlich) |
-| **🔄Installation
+| **� Watchlist-Preisüberwachung** | Automatische Überwachung von Preisänderungen bei Autos in der Auto1-Watchlist mit visuellen Indikatoren (↑↓→) |
+
+---
+
+## 📊 Watchlist-Preisüberwachung auf Auto1 Dashboard
+
+Die Erweiterung **überwacht automatisch die Preisänderungen** aller Fahrzeuge in Ihrer Auto1 Watchlist auf dem Dashboard.
+
+### Wie funktioniert es?
+- **Preisabruf**: Preise werden automatisch alle 0,5 Sekunden gescannt
+- **Visuelle Indikatoren**: Neben jedem Preis erscheint eine Farbe und ein Symbol, das die Änderung zeigt:
+  - **🟢 ↑ XXX€** - Preis gestiegen (Anstieg)
+  - **🔴 ↓ XXX€** - Preis gefallen (Rückgang)
+  - **🔵 → 0€** - Keine Änderung
+- **Preishistorie**: Die letzten 50 Preisänderungen werden im Browser-Speicher gespeichert
+- **Echtzeit**: Die Überwachung läuft im Hintergrund auf der Dashboard-Seite
+
+### Wo kann ich das sehen?
+1. Öffnen Sie das Auto1.com Dashboard: https://www.auto1.com/de/app/dashboard
+2. Gehen Sie zur Watchlist
+3. Sie sehen die Preise mit Änderungsindikatoren neben den Werten
+
+---
+
+## 🚀 Installation
 
 ### 📌 Einfache Variante (für alle) - ohne Terminal!
 
