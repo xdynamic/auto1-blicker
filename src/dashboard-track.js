@@ -1,167 +1,100 @@
-// Dashboard Price Tracker - v1.0
-// Śledzenie zmian cen na Ulubionychach (watchlist)
+// Auto1 Dashboard Price Tracker v5.0
+// Inject as <script> tag to run BEFORE Auto1 patches fetch
 
-(async function() {
-  'use strict';
+// First, save original fetch BEFORE any patching
+window.__originalFetch = window.fetch;
 
-  console.log('[OB Dashboard] Price tracker loaded');
+// Helper function to search for entities
+function findEntitiesInObject(obj, depth = 0) {
+  if (depth > 20 || !obj) return null;
+  
+  if (Array.isArray(obj)) {
+    if (obj.length > 0 && obj[0]?.stockNumber) {
+      return obj;
+    }
+    for (let item of obj) {
+      const result = findEntitiesInObject(item, depth + 1);
+      if (result) return result;
+    }
+  } else if (typeof obj === 'object') {
+    for (let key in obj) {
+      if (key === 'entities' && Array.isArray(obj[key]) && obj[key][0]?.stockNumber) {
+        return obj[key];
+      }
+      const result = findEntitiesInObject(obj[key], depth + 1);
+      if (result) return result;
+    }
+  }
+  return null;
+}
 
-  // Przechwyć fetch requests do watchlist API
-  const originalFetch = window.fetch;
-  window.fetch = function(...args) {
-    const [resource] = args;
-    const url = typeof resource === 'string' ? resource : resource.url;
+// Save prices to chrome storage
+function savePriceToStorage(stockNumber, priceEur) {
+  const key = `ob_watchlist_${stockNumber}`;
+  chrome.storage.local.get([key], (result) => {
+    const prices = result[key] || [];
+    const lastPrice = prices[prices.length - 1];
+    
+    if (lastPrice && lastPrice.price === priceEur) return;
+    
+    prices.push({ price: priceEur, timestamp: Date.now() });
+    chrome.storage.local.set({ [key]: prices.slice(-50) });
+    console.error(`[OB] 💾 ${stockNumber}: ${priceEur}€`);
+  });
+}
 
-    return originalFetch.apply(this, args).then(response => {
-      // Sprawdź czy to watchlist API
-      if (url && url.includes('watchlist-tab')) {
-        response
-          .clone()
-          .json()
-          .then(data => {
-            if (data.entities) {
-              console.log('[OB Dashboard] Watchlist data received, entities:', data.entities.length);
-              trackWatchlistPrices(data.entities);
+// Patch XMLHttpRequest to intercept Auto1's requests
+const originalOpen = XMLHttpRequest.prototype.open;
+const originalSend = XMLHttpRequest.prototype.send;
+
+XMLHttpRequest.prototype.open = function(method, url) {
+  this._obUrl = url;
+  return originalOpen.apply(this, arguments);
+};
+
+XMLHttpRequest.prototype.send = function(data) {
+  const self = this;
+  const originalOnReadyStateChange = this.onreadystatechange;
+  
+  this.onreadystatechange = function() {
+    if (this.readyState === 4 && this.status === 200) {
+      try {
+        const text = this.responseText;
+        const data = JSON.parse(text);
+        
+        // Check for entities
+        if (data.entities && Array.isArray(data.entities) && data.entities.length > 0) {
+          console.error('[OB] 🎉 XHR found', data.entities.length, 'entities');
+          data.entities.forEach(entity => {
+            if (entity.stockNumber && entity.price?.price) {
+              const priceEur = Math.round(entity.price.price / 100);
+              savePriceToStorage(entity.stockNumber, priceEur);
             }
-          })
-          .catch(e => console.error('[OB Dashboard] Error parsing response:', e));
-      }
-
-      return response;
-    });
-  };
-
-  // Zapisz ceny do storage
-  async function trackWatchlistPrices(entities) {
-    for (const entity of entities) {
-      const { stockNumber, price } = entity;
-      if (!stockNumber || !price || !price.price) continue;
-
-      const priceEur = Math.round(price.price / 100); // Convert from minor units
-      await savePriceSnapshot(stockNumber, priceEur);
-      console.log(`[OB Dashboard] Saved price for ${stockNumber}: ${priceEur}€`);
-    }
-
-    // Teraz injectuj badge'i do DOM
-    injectPriceBadges(entities);
-  }
-
-  async function savePriceSnapshot(stockNumber, priceEur) {
-    try {
-      const key = `ob_watchlist_${stockNumber}`;
-      const stored = await chrome.storage.local.get([key]);
-      const prices = stored[key] || [];
-
-      prices.push({
-        price: priceEur,
-        timestamp: Date.now()
-      });
-
-      // Łrzeechowaj tylko ostatnie 100 snapshots
-      const keepLast = prices.slice(-100);
-      await chrome.storage.local.set({ [key]: keepLast });
-    } catch (e) {
-      console.error('[OB Dashboard] Error saving price:', e);
-    }
-  }
-
-  async function getPriceChange(stockNumber) {
-    try {
-      const key = `ob_watchlist_${stockNumber}`;
-      const stored = await chrome.storage.local.get([key]);
-      const prices = stored[key] || [];
-
-      if (prices.length < 2) return null;
-
-      const current = prices[prices.length - 1].price;
-      const previous = prices[prices.length - 2].price;
-      const change = current - previous;
-      const changePercent = ((change / previous) * 100).toFixed(1);
-
-      return {
-        change,
-        changePercent,
-        trend: change > 0 ? '↑' : change < 0 ? '↓' : '→',
-        trendClass: change > 0 ? 'up' : change < 0 ? 'down' : 'stable'
-      };
-    } catch (e) {
-      console.error('[OB Dashboard] Error calculating change:', e);
-      return null;
-    }
-  }
-
-  function injectPriceBadges(entities) {
-    // Czekaj trochę żeby DOM się załadował
-    setTimeout(async () => {
-      for (const entity of entities) {
-        const { stockNumber } = entity;
-        const priceChange = await getPriceChange(stockNumber);
-
-        if (!priceChange) continue;
-
-        // Szukaj elementu ceny dla tego samochodu
-        // Struktura: każdy element ma data-qa-id lub inne identyfikatory
-        const priceElements = Array.from(
-          document.querySelectorAll('[class*="price"], [data-qa*="price"]')
-        ).filter(el => {
-          const text = el.textContent;
-          return text.includes('€') || text.includes('EUR');
-        });
-
-        // Injectuj badge obok każdej ceny (jeśli należy do tego stockNumber)
-        // Heurystyka: szukaj stock number w najbliższym kontenere
-        for (const priceEl of priceElements) {
-          const container = priceEl.closest('[class*="card"], [class*="item"], [class*="row"]');
-          if (container && container.textContent.includes(stockNumber)) {
-            injectBadge(container, priceChange);
-            break; // Tylko jeden badge per auto
-          }
+          });
         }
+        
+        // Search nested
+        const found = findEntitiesInObject(data);
+        if (found && !data.entities) {
+          console.error('[OB] 🎯 XHR found nested', found.length, 'entities');
+          found.forEach(entity => {
+            if (entity.stockNumber && entity.price?.price) {
+              const priceEur = Math.round(entity.price.price / 100);
+              savePriceToStorage(entity.stockNumber, priceEur);
+            }
+          });
+        }
+      } catch (e) {
+        // Not JSON
       }
-    }, 500);
-  }
-
-  function injectBadge(container, priceChange) {
-    // Sprawdź czy już istnieje badge
-    if (container.querySelector('[data-ob-badge]')) return;
-
-    const badge = document.createElement('div');
-    badge.setAttribute('data-ob-badge', 'true');
-    badge.className = `ob-watchlist-badge ob-watchlist-${priceChange.trendClass}`;
-    badge.textContent = `${priceChange.trend} ${Math.abs(priceChange.change)}€`;
-    badge.title = `${priceChange.changePercent}%`;
-
-    // Style inline dla szybkości
-    badge.style.cssText = `
-      display: inline-block;
-      padding: 4px 8px;
-      margin-left: 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      background: rgba(0,0,0,0.05);
-      border: 1px solid;
-      cursor: default;
-      white-space: nowrap;
-    `;
-
-    // Kolory w zależności od trendu
-    if (priceChange.trendClass === 'up') {
-      badge.style.color = '#ff6b6b';
-      badge.style.borderColor = '#ff6b6b';
-    } else if (priceChange.trendClass === 'down') {
-      badge.style.color = '#51cf66';
-      badge.style.borderColor = '#51cf66';
-    } else {
-      badge.style.color = '#74c0fc';
-      badge.style.borderColor = '#74c0fc';
     }
-
-    // Dodaj badge obok ceny
-    const priceElement = container.querySelector('[class*="price"]');
-    if (priceElement) {
-      priceElement.parentElement.appendChild(badge);
-      console.log('[OB Dashboard] Badge injected');
+    
+    if (originalOnReadyStateChange) {
+      originalOnReadyStateChange.call(this);
     }
-  }
-})();
+  };
+  
+  return originalSend.apply(this, arguments);
+};
+
+console.error('[OB] ✅ XHR interceptor installed');
