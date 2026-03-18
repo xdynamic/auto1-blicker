@@ -413,6 +413,16 @@ if (!window.obClearStorage) {
   };
 }
 
+// Debug function: Clear specific stock history
+if (!window.obClearStock) {
+  window.obClearStock = function(stockNumber) {
+    chrome.storage.local.remove('ob_watchlist_' + stockNumber, () => {
+      console.log('[OB] ✅ Cleared history for ' + stockNumber);
+    });
+  };
+}
+
 console.log('[OB] 💡 Manual scan: window.obManualScan()');
 console.log('[OB] 💡 Clear storage: window.obClearStorage()');
+console.log('[OB] 💡 Clear one stock: window.obClearStock("LC33380")');
 console.log('[OB] ✅ Dashboard tracker ready!');
