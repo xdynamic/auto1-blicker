@@ -8,11 +8,11 @@ function savePrice(stockNumber, priceEur) {
   
   chrome.storage.local.get('ob_watchlist_' + stockNumber, function(result) {
     const prices = result['ob_watchlist_' + stockNumber] || [];
-    const lastPrice = prices[prices.length - 1];
     
-    // Skip if same price within 1 second
-    if (lastPrice && lastPrice.price === priceEur && (Date.now() - lastPrice.timestamp) < 1000) {
-      return;
+    // Check if this exact price was saved within last 5 seconds (avoid duplicate scans)
+    const lastPrice = prices[prices.length - 1];
+    if (lastPrice && lastPrice.price === priceEur && (Date.now() - lastPrice.timestamp) < 5000) {
+      return; // Skip duplicate from same scan
     }
     
     prices.push({ price: priceEur, timestamp: Date.now() });
@@ -21,6 +21,31 @@ function savePrice(stockNumber, priceEur) {
     chrome.storage.local.set(data, function() {
       console.log('[OB] ✅ Saved ' + stockNumber + ': ' + priceEur + '€');
     });
+  });
+}
+
+// Get previous DIFFERENT price from history
+// Ignores prices from last 30 minutes (same-day scans)
+// Only compares with prices from "previous session" (different day/time)
+function getPreviousPrice(stockNumber, currentPrice, callback) {
+  chrome.storage.local.get('ob_watchlist_' + stockNumber, function(result) {
+    const history = result['ob_watchlist_' + stockNumber] || [];
+    const now = Date.now();
+    const thirtyMinutesAgo = now - (30 * 60 * 1000);
+    
+    // Find last price that:
+    // 1. Is different from current price
+    // 2. Is older than 30 minutes (different scan session, not same-day duplicate)
+    let prevPrice = null;
+    for (let i = history.length - 1; i >= 0; i--) {
+      const entry = history[i];
+      if (entry.price !== currentPrice && entry.timestamp < thirtyMinutesAgo) {
+        prevPrice = entry.price;
+        break;
+      }
+    }
+    
+    callback(prevPrice);
   });
 }
 
@@ -139,18 +164,15 @@ function scanDOMPrices() {
       foundCount++;
       console.log('[OB] ✅ ' + stockNumber + ': ' + priceEur + '€');
       
-      // Get previous price and save
-      chrome.storage.local.get('ob_watchlist_' + stockNumber, function(data) {
-        const key = 'ob_watchlist_' + stockNumber;
-        const history = data[key] || [];
-        const lastPrice = history.length > 0 ? history[history.length - 1].price : null;
-        
-        // Save new price
-        savePrice(stockNumber, priceEur);
-        
-        // Add badge with comparison
-        addPriceBadge(cardDiv, stockNumber, priceEur, lastPrice);
-      });
+      // Get previous DIFFERENT price (ignores same-day duplicates) and save
+      // Don't preserve DOM refs - they'll be stale after React re-render
+      // Instead, use closure with just stockNumber for later re-finding
+      (function(stock) {
+        getPreviousPrice(stock, priceEur, function(prevPrice) {
+          savePrice(stock, priceEur);
+          addPriceBadge(stock, priceEur, prevPrice);
+        });
+      })(stockNumber);
     });
     
     if (foundCount > 0) {
@@ -163,18 +185,52 @@ function scanDOMPrices() {
 }
 
 // Add visual price badge to card
-function addPriceBadge(cardDiv, stockNumber, currentPrice, lastPrice) {
+// Re-finds card and priceSpan on demand (called after getPreviousPrice callback)
+// This avoids stale DOM reference issues from React re-renders
+function addPriceBadge(stockNumber, currentPrice, lastPrice) {
   try {
-    // Remove old badge if exists
-    const oldBadge = cardDiv.querySelector('[data-ob-badge]');
-    if (oldBadge) oldBadge.remove();
-    
     console.log('[OB] Badge: ' + stockNumber + ' current=' + currentPrice + ' last=' + lastPrice);
     
     if (!lastPrice) {
       console.log('[OB] No lastPrice history yet for ' + stockNumber);
       return; // Only show badge if we have history
     }
+    
+    // Re-find card and price span in current live DOM
+    const allCards = document.querySelectorAll('div.dashboardCard, [class*="dashboardCard"]');
+    let foundCard = null;
+    let foundPriceSpan = null;
+    
+    for (let i = 0; i < allCards.length; i++) {
+      const card = allCards[i];
+      const parentId = card.id || '';
+      
+      // Try to match stock number in card ID or surrounding elements
+      if (parentId.includes(stockNumber)) {
+        foundCard = card;
+        break;
+      }
+    }
+    
+    if (!foundCard) {
+      console.log('[OB] Could not find card for ' + stockNumber);
+      return;
+    }
+    
+    // Find price span in this card
+    foundPriceSpan = foundCard.querySelector('span[data-qa-id="bidValue"]');
+    if (!foundPriceSpan) {
+      foundPriceSpan = foundCard.querySelector('[class*="bid"]');
+    }
+    
+    if (!foundPriceSpan) {
+      console.log('[OB] Could not find price span for ' + stockNumber);
+      return;
+    }
+    
+    // Remove old badge
+    const oldBadge = foundCard.querySelector('[data-ob-badge]');
+    if (oldBadge) oldBadge.remove();
     
     let indicator = '→';
     let change = 0;
@@ -188,17 +244,6 @@ function addPriceBadge(cardDiv, stockNumber, currentPrice, lastPrice) {
       indicator = '↓';
       change = lastPrice - currentPrice;
       bgColor = '#f44336'; // Red for price down
-    }
-    
-    // Find price value to insert badge next to it
-    let priceValueSpan = cardDiv.querySelector('span[data-qa-id="bidValue"]');
-    if (!priceValueSpan) {
-      priceValueSpan = cardDiv.querySelector('[class*="bid"]');
-    }
-    
-    if (!priceValueSpan) {
-      console.log('[OB] No price span found for badge ' + stockNumber);
-      return;
     }
     
     // Create badge element
@@ -218,7 +263,7 @@ function addPriceBadge(cardDiv, stockNumber, currentPrice, lastPrice) {
     `;
     
     badge.textContent = indicator + ' ' + change + '€';
-    priceValueSpan.appendChild(badge);
+    foundPriceSpan.appendChild(badge);
     console.log('[OB] 🎨 Badge added ' + stockNumber + ': ' + indicator + ' ' + change + '€');
     
   } catch (e) {
