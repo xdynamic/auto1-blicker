@@ -27,111 +27,138 @@ function savePrice(stockNumber, priceEur) {
 // Scan DOM and extract stock+price pairs from dashboard cards
 function scanDOMPrices() {
   try {
-    // Try multiple selectors for watchlist items
+    // FIRST: Try primary selector - div.dashboardCard
     let cardDivs = document.querySelectorAll('div.dashboardCard');
+    
     if (cardDivs.length === 0) {
-      cardDivs = document.querySelectorAll('div.watchlist-item');
-    }
-    if (cardDivs.length === 0) {
-      cardDivs = document.querySelectorAll('div[class*="card"]');
+      console.log('[OB] No div.dashboardCard found, trying fallbacks...');
+      
+      // Fallback 1: Look for divs with dashboardCard in class
+      cardDivs = document.querySelectorAll('[class*="dashboardCard"]');
+      console.log('[OB] Fallback [class*="dashboardCard"]: ' + cardDivs.length);
+      
+      // Fallback 2: Look for divs that contain both stock ID and price
+      if (cardDivs.length === 0) {
+        const allDivs = document.querySelectorAll('div[id]');
+        const filtered = [];
+        allDivs.forEach(function(div) {
+          const id = div.id;
+          // Check if ID looks like stock number   
+          if (/^[A-Z]{2}\d{5}$/.test(id) || /^\d{5,6}$/.test(id)) {
+            filtered.push(div);
+          }
+        });
+        cardDivs = filtered;
+        console.log('[OB] Fallback div[id] matching stock pattern: ' + cardDivs.length);
+      }
+    } else {
+      console.log('[OB] Found div.dashboardCard: ' + cardDivs.length);
     }
     
     let foundCount = 0;
-    let savedCount = 0;
     
     if (cardDivs.length === 0) {
-      console.log('[OB] No cards found with any selector');
+      console.log('[OB] ⚠️ No cards found');
       return;
     }
     
-    console.log('[OB] 🔍 Scanning ' + cardDivs.length + ' cards...');
+    console.log('[OB] 🔍 Scanning ' + cardDivs.length + ' card(s)...');
     
     cardDivs.forEach(function(cardDiv, index) {
       let stockNumber = null;
       
-      // Strategy 1: Look for stock number in parent element IDs
+      // Get stock number from parent ID (prioritize direct parent)
       let parent = cardDiv;
       let depth = 0;
-      while (parent && !stockNumber && depth < 10) {
+      while (parent && !stockNumber && depth < 5) {
         const id = parent.id || '';
-        if (id) {
-          // Match pattern: DE86227, PL81234, etc
-          if (/^[A-Z]{2}\d{5}$/.test(id)) {
-            stockNumber = id;
-            break;
-          }
-          // Also try just numeric IDs
-          if (/^\d{4,6}$/.test(id)) {
-            stockNumber = id;
-            break;
-          }
+        if (id && (/^[A-Z]{2}\d{5}$/.test(id) || /^\d{5,6}$/.test(id))) {
+          stockNumber = id;
+          console.log('[OB] Found stock ' + stockNumber + ' at parent depth ' + depth);
+          break;
         }
         parent = parent.parentElement;
         depth++;
       }
       
-      // Strategy 2: Try to extract from visible text on the card
-      if (!stockNumber && cardDiv.textContent) {
-        const allText = cardDiv.textContent;
-        // Look for stock number pattern
-        const stockMatch = allText.match(/([A-Z]{2}\d{5})/);
-        if (stockMatch) {
-          stockNumber = stockMatch[1];
+      if (!stockNumber) {
+        console.log('[OB] Card ' + index + ': No stock number found');
+        return;
+      }
+      
+      // Find price - try multiple selectors
+      let priceSpan = null;
+      let priceText = '';
+      
+      // Try exact selector first
+      priceSpan = cardDiv.querySelector('span[data-qa-id="bidValue"]');
+      if (priceSpan) {
+        const valueInner = priceSpan.querySelector('.value-inner');
+        if (valueInner) {
+          priceText = valueInner.textContent;
+        } else {
+          priceText = priceSpan.textContent;
         }
       }
       
-      if (!stockNumber) {
-        return; // Skip cards without stock number
+      // Fallback: search for any element with € symbol
+      if (!priceText || !priceText.includes('€')) {
+        const allElements = cardDiv.querySelectorAll('*');
+        for (let i = 0; i < allElements.length; i++) {
+          const text = allElements[i].textContent;
+          if (text.includes('€') && text.match(/\d+\s*€/)) {
+            priceText = text;
+            break;
+          }
+        }
       }
       
-      // Try to find price in multiple ways
-      let priceSpan = cardDiv.querySelector('span[data-qa-id="bidValue"] .value-inner');
-      if (!priceSpan) {
-        priceSpan = cardDiv.querySelector('span[data-qa-id="bidValue"]');
-      }
-      if (!priceSpan) {
-        priceSpan = cardDiv.querySelector('[class*="bid"]');
+      priceText = priceText.trim();
+      
+      if (!priceText) {
+        console.log('[OB] ' + stockNumber + ': No price text found');
+        return;
       }
       
-      if (!priceSpan) {
-        return; // Skip if no price found
-      }
-      
-      let priceText = priceSpan.textContent.trim() || priceSpan.innerText.trim();
-      
-      // Extract price number with flexible matching
+      // Extract just the number
       const priceMatch = priceText.match(/(\d+(?:\s\d+)*)\s*€/);
       
-      if (priceMatch) {
-        const priceStr = priceMatch[1].replace(/\s/g, '');
-        const priceEur = parseInt(priceStr);
-        
-        if (priceEur > 500 && priceEur < 500000) {
-          foundCount++;
-          
-          // Get previous price from storage and save new price
-          chrome.storage.local.get('ob_watchlist_' + stockNumber, function(data) {
-            const key = 'ob_watchlist_' + stockNumber;
-            const history = data[key] || [];
-            const lastPrice = history.length > 0 ? history[history.length - 1].price : null;
-            
-            // Save new price
-            savePrice(stockNumber, priceEur);
-            savedCount++;
-            
-            // Add badge with comparison
-            addPriceBadge(cardDiv, stockNumber, priceEur, lastPrice);
-          });
-        }
+      if (!priceMatch) {
+        console.log('[OB] ' + stockNumber + ': Could not parse price from "' + priceText + '"');
+        return;
       }
+      
+      const priceStr = priceMatch[1].replace(/\s/g, '');
+      const priceEur = parseInt(priceStr);
+      
+      if (priceEur < 500 || priceEur > 500000) {
+        console.log('[OB] ' + stockNumber + ': Price ' + priceEur + '€ out of range');
+        return;
+      }
+      
+      foundCount++;
+      console.log('[OB] ✅ ' + stockNumber + ': ' + priceEur + '€');
+      
+      // Get previous price and save
+      chrome.storage.local.get('ob_watchlist_' + stockNumber, function(data) {
+        const key = 'ob_watchlist_' + stockNumber;
+        const history = data[key] || [];
+        const lastPrice = history.length > 0 ? history[history.length - 1].price : null;
+        
+        // Save new price
+        savePrice(stockNumber, priceEur);
+        
+        // Add badge with comparison
+        addPriceBadge(cardDiv, stockNumber, priceEur, lastPrice);
+      });
     });
     
     if (foundCount > 0) {
-      console.log('[OB] 📊 Found ' + foundCount + ' prices, saving ' + savedCount);
+      console.log('[OB] 📊 Processed ' + foundCount + ' prices');
     }
     
   } catch (e) {
-    console.log('[OB] ❌ Error in scanDOMPrices:', e.message);
+    console.log('[OB] ❌ Error:', e.message);
   }
 }
 
@@ -142,7 +169,10 @@ function addPriceBadge(cardDiv, stockNumber, currentPrice, lastPrice) {
     const oldBadge = cardDiv.querySelector('[data-ob-badge]');
     if (oldBadge) oldBadge.remove();
     
+    console.log('[OB] Badge: ' + stockNumber + ' current=' + currentPrice + ' last=' + lastPrice);
+    
     if (!lastPrice) {
+      console.log('[OB] No lastPrice history yet for ' + stockNumber);
       return; // Only show badge if we have history
     }
     
@@ -167,6 +197,7 @@ function addPriceBadge(cardDiv, stockNumber, currentPrice, lastPrice) {
     }
     
     if (!priceValueSpan) {
+      console.log('[OB] No price span found for badge ' + stockNumber);
       return;
     }
     
@@ -188,6 +219,7 @@ function addPriceBadge(cardDiv, stockNumber, currentPrice, lastPrice) {
     
     badge.textContent = indicator + ' ' + change + '€';
     priceValueSpan.appendChild(badge);
+    console.log('[OB] 🎨 Badge added ' + stockNumber + ': ' + indicator + ' ' + change + '€');
     
   } catch (e) {
     console.log('[OB] Error adding badge:', e.message);
@@ -205,11 +237,20 @@ function setupObserver() {
   console.log('[OB] DOM ready, setting up observer');
   
   try {
-    // Debounced scan
+    // IMPORTANT: Add debounce flag to prevent infinite loops
+    let isScanning = false;
     let scanTimeout;
+    
     const observer = new MutationObserver(function() {
+      // Skip if already scanning
+      if (isScanning) return;
+      
       clearTimeout(scanTimeout);
-      scanTimeout = setTimeout(scanDOMPrices, 500);
+      scanTimeout = setTimeout(function() {
+        isScanning = true;
+        scanDOMPrices();
+        isScanning = false;
+      }, 1000);  // Debounce at 1 second
     });
     
     observer.observe(document.body, {
@@ -219,24 +260,30 @@ function setupObserver() {
       attributes: false
     });
     
-    console.log('[OB] ✅ MutationObserver installed');
+    console.log('[OB] ✅ MutationObserver installed (with debounce protection)');
   } catch (e) {
     console.log('[OB] Observer setup error:', e.message);
   }
   
-  // Initial scan after React renders (wait 3-5 seconds)
+  // Initial scan - wait longer for React first render
   setTimeout(function() {
-    console.log('[OB] Initial scan...');
+    console.log('[OB] First scan (3s delay)...');
     scanDOMPrices();
   }, 3000);
+  
+  // Second scan after React fully loads
+  setTimeout(function() {
+    console.log('[OB] Second scan (6s delay)...');
+    scanDOMPrices();
+  }, 6000);
 }
 
 // Start watching
 setupObserver();
 
-// Expose manual trigger for debugging
-window.obManualScan = function() {
-  console.log('[OB] Manual scan triggered');
-  scanDOMPrices();
-};
-console.log('[OB] 💡 Use window.obManualScan() in console to force scan');
+// Expose manual trigger for debugging - register DIRECTLY
+if (!window.obManualScan) {
+  window.obManualScan = scanDOMPrices;
+}
+console.log('[OB] 💡 Manual scan: window.obManualScan()');
+console.log('[OB] ✅ Dashboard tracker ready!');
