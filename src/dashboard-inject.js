@@ -2,6 +2,10 @@
 // Extract stock + price pairs from DOM with robust debugging
 console.log('[OB] Dashboard tracker v9.1 loaded - watching for watchlist prices...');
 
+// Cache to store card and price span references by stock number
+// Allows async callbacks to find elements even after initial DOM scan
+const stockElementCache = new Map();
+
 // Save prices to storage
 function savePrice(stockNumber, priceEur) {
   if (!stockNumber || !priceEur) return;
@@ -164,15 +168,14 @@ function scanDOMPrices() {
       foundCount++;
       console.log('[OB] ✅ ' + stockNumber + ': ' + priceEur + '€');
       
+      // Cache card and priceSpan references for use in async callback
+      stockElementCache.set(stockNumber, { card: cardDiv, priceSpan: priceSpan });
+      
       // Get previous DIFFERENT price (ignores same-day duplicates) and save
-      // Don't preserve DOM refs - they'll be stale after React re-render
-      // Instead, use closure with just stockNumber for later re-finding
-      (function(stock) {
-        getPreviousPrice(stock, priceEur, function(prevPrice) {
-          savePrice(stock, priceEur);
-          addPriceBadge(stock, priceEur, prevPrice);
-        });
-      })(stockNumber);
+      getPreviousPrice(stockNumber, priceEur, function(prevPrice) {
+        savePrice(stockNumber, priceEur);
+        addPriceBadge(stockNumber, priceEur, prevPrice);
+      });
     });
     
     if (foundCount > 0) {
@@ -185,8 +188,7 @@ function scanDOMPrices() {
 }
 
 // Add visual price badge to card
-// Re-finds card and priceSpan on demand (called after getPreviousPrice callback)
-// This avoids stale DOM reference issues from React re-renders
+// Retrieves card and priceSpan from cache (stored during DOM scan)
 function addPriceBadge(stockNumber, currentPrice, lastPrice) {
   try {
     console.log('[OB] Badge: ' + stockNumber + ' current=' + currentPrice + ' last=' + lastPrice);
@@ -196,40 +198,26 @@ function addPriceBadge(stockNumber, currentPrice, lastPrice) {
       return; // Only show badge if we have history
     }
     
-    // Re-find card and price span in current live DOM
-    const allCards = document.querySelectorAll('div.dashboardCard, [class*="dashboardCard"]');
-    let foundCard = null;
-    let foundPriceSpan = null;
-    
-    for (let i = 0; i < allCards.length; i++) {
-      const card = allCards[i];
-      const parentId = card.id || '';
-      
-      // Try to match stock number in card ID or surrounding elements
-      if (parentId.includes(stockNumber)) {
-        foundCard = card;
-        break;
-      }
-    }
-    
-    if (!foundCard) {
-      console.log('[OB] Could not find card for ' + stockNumber);
+    // Retrieve cached card and priceSpan
+    const cached = stockElementCache.get(stockNumber);
+    if (!cached || !cached.card || !cached.priceSpan) {
+      console.log('[OB] No cached elements for ' + stockNumber);
       return;
     }
     
-    // Find price span in this card
-    foundPriceSpan = foundCard.querySelector('span[data-qa-id="bidValue"]');
-    if (!foundPriceSpan) {
-      foundPriceSpan = foundCard.querySelector('[class*="bid"]');
-    }
+    const cardDiv = cached.card;
+    const priceSpan = cached.priceSpan;
     
-    if (!foundPriceSpan) {
-      console.log('[OB] Could not find price span for ' + stockNumber);
+    // Check if elements still exist in DOM
+    if (!cardDiv.parentNode || !priceSpan.parentNode) {
+      console.log('[OB] Cached elements no longer in DOM for ' + stockNumber);
+      // Clean up cache
+      stockElementCache.delete(stockNumber);
       return;
     }
     
     // Remove old badge
-    const oldBadge = foundCard.querySelector('[data-ob-badge]');
+    const oldBadge = cardDiv.querySelector('[data-ob-badge]');
     if (oldBadge) oldBadge.remove();
     
     let indicator = '→';
@@ -263,7 +251,7 @@ function addPriceBadge(stockNumber, currentPrice, lastPrice) {
     `;
     
     badge.textContent = indicator + ' ' + change + '€';
-    foundPriceSpan.appendChild(badge);
+    priceSpan.appendChild(badge);
     console.log('[OB] 🎨 Badge added ' + stockNumber + ': ' + indicator + ' ' + change + '€');
     
   } catch (e) {
