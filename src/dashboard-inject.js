@@ -168,12 +168,21 @@ function scanDOMPrices() {
       foundCount++;
       console.log('[OB] ✅ ' + stockNumber + ': ' + priceEur + '€');
       
-      // Cache card and priceSpan references for use in async callback
+      // Cache card and priceSpan references PLUS get lastPrice immediately
       stockElementCache.set(stockNumber, { card: cardDiv, priceSpan: priceSpan });
       
-      // Get previous DIFFERENT price (ignores same-day duplicates) and save
+      // Get previous DIFFERENT price and add badge IMMEDIATELY (synchronously in callback)
       getPreviousPrice(stockNumber, priceEur, function(prevPrice) {
+        // Store lastPrice in cache for future reference
+        const cached = stockElementCache.get(stockNumber);
+        if (cached) {
+          cached.lastPrice = prevPrice;
+        }
+        
+        // Save price to storage
         savePrice(stockNumber, priceEur);
+        
+        // Add badge using cache (should be valid - just populated)
         addPriceBadge(stockNumber, priceEur, prevPrice);
       });
     });
@@ -191,27 +200,37 @@ function scanDOMPrices() {
 // Retrieves card and priceSpan from cache (stored during DOM scan)
 function addPriceBadge(stockNumber, currentPrice, lastPrice) {
   try {
-    console.log('[OB] Badge: ' + stockNumber + ' current=' + currentPrice + ' last=' + lastPrice);
+    console.log('[OB] Badge attempt: ' + stockNumber + ' current=' + currentPrice + ' last=' + lastPrice);
     
     if (!lastPrice) {
-      console.log('[OB] No lastPrice history yet for ' + stockNumber);
+      console.log('[OB] Skip badge for ' + stockNumber + ' - no history');
       return; // Only show badge if we have history
     }
     
     // Retrieve cached card and priceSpan
     const cached = stockElementCache.get(stockNumber);
-    if (!cached || !cached.card || !cached.priceSpan) {
-      console.log('[OB] No cached elements for ' + stockNumber);
+    if (!cached) {
+      console.log('[OB] Cache miss for ' + stockNumber);
       return;
     }
     
     const cardDiv = cached.card;
     const priceSpan = cached.priceSpan;
     
+    if (!cardDiv || !priceSpan) {
+      console.log('[OB] Cache incomplete for ' + stockNumber);
+      return;
+    }
+    
     // Check if elements still exist in DOM
-    if (!cardDiv.parentNode || !priceSpan.parentNode) {
-      console.log('[OB] Cached elements no longer in DOM for ' + stockNumber);
-      // Clean up cache
+    if (!cardDiv.parentNode) {
+      console.log('[OB] Card removed from DOM: ' + stockNumber);
+      stockElementCache.delete(stockNumber);
+      return;
+    }
+    
+    if (!priceSpan.parentNode) {
+      console.log('[OB] PriceSpan removed from DOM: ' + stockNumber);
       stockElementCache.delete(stockNumber);
       return;
     }
@@ -252,7 +271,7 @@ function addPriceBadge(stockNumber, currentPrice, lastPrice) {
     
     badge.textContent = indicator + ' ' + change + '€';
     priceSpan.appendChild(badge);
-    console.log('[OB] 🎨 Badge added ' + stockNumber + ': ' + indicator + ' ' + change + '€');
+    console.log('[OB] ✅ Badge added ' + stockNumber + ': ' + indicator + ' ' + change + '€');
     
   } catch (e) {
     console.log('[OB] Error adding badge:', e.message);
