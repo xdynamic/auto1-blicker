@@ -49,26 +49,40 @@ function getPreviousPrice(stockNumber, currentPrice, callback) {
       console.log('[OB]   - Prices in window: ' + recentCount + '/' + history.length);
     }
     
-    // Find last price that:
-    // 1. Is different from current price
-    // 2. Is older than time window (different scan session)
+    // Find last price that is old enough (different from current is bonus)
+    // Strategy: Look for DIFFERENT + OLD, but accept ANY OLD if no different exists
     let prevPrice = null;
+    let oldestPrice = null;
+    let oldestTime = now;
+    
     for (let i = history.length - 1; i >= 0; i--) {
       const entry = history[i];
       const isOldEnough = entry.timestamp < cutoffTime;
       const isDifferent = entry.price !== currentPrice;
       
+      // Track oldest price for fallback
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestPrice = entry.price;
+      }
+      
+      // Priority 1: Different + Old (price actually changed)
       if (isDifferent && isOldEnough) {
         prevPrice = entry.price;
-        console.log('[OB]   ✓ Found valid previous price: ' + prevPrice + '€ (age: ' + Math.round((now - entry.timestamp) / 1000) + 's ago)');
+        console.log('[OB]   ✓ Found valid previous price (DIFFERENT): ' + prevPrice + '€ (age: ' + Math.round((now - entry.timestamp) / 1000) + 's ago)');
         break;
-      } else if (isDifferent) {
-        console.log('[OB]   ✗ Found different price but too recent: ' + entry.price + '€ (only ' + Math.round((now - entry.timestamp) / 1000) + 's ago)');
       }
     }
     
+    // Priority 2 (fallback): If no different price found, use oldest one (even if same)
+    // This allows badges to show during development when prices don't change
+    if (!prevPrice && oldestPrice !== null && oldestTime < cutoffTime) {
+      prevPrice = oldestPrice;
+      console.log('[OB]   ✓ Found oldest previous price (SAME): ' + prevPrice + '€ (age: ' + Math.round((now - oldestTime) / 1000) + 's ago, no different prices exist)');
+    }
+    
     if (!prevPrice && history.length > 0) {
-      console.log('[OB]   → No valid previous price found (current=' + currentPrice + '€, all prices same or too recent)');
+      console.log('[OB]   → No valid previous price found (current=' + currentPrice + '€, all prices too recent or no history outside window)');
     }
     
     callback(prevPrice);
