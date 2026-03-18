@@ -403,5 +403,16 @@ setupObserver();
 if (!window.obManualScan) {
   window.obManualScan = scanDOMPrices;
 }
+
+// Debug function: Clear all storage
+if (!window.obClearStorage) {
+  window.obClearStorage = function() {
+    chrome.storage.local.clear(() => {
+      console.log('[OB] ✅ Storage cleared! Prices will reset on next page reload.');
+    });
+  };
+}
+
 console.log('[OB] 💡 Manual scan: window.obManualScan()');
+console.log('[OB] 💡 Clear storage: window.obClearStorage()');
 console.log('[OB] ✅ Dashboard tracker ready!');
