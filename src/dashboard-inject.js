@@ -29,28 +29,33 @@ function savePrice(stockNumber, priceEur) {
 }
 
 // Get previous DIFFERENT price from history
-// Ignores prices from last 30 minutes (same-day scans)
-// Only compares with prices from "previous session" (different day/time)
+// For development/testing: Uses 2-minute window to show any different price
+// For production: Could use 30-minute window to ignore same-day duplicates
 function getPreviousPrice(stockNumber, currentPrice, callback) {
   chrome.storage.local.get('ob_watchlist_' + stockNumber, function(result) {
     const history = result['ob_watchlist_' + stockNumber] || [];
     const now = Date.now();
-    const thirtyMinutesAgo = now - (30 * 60 * 1000);
+    // DEV MODE: Use 2-minute window (allows any different price from recent scans)
+    // PROD MODE: Use 30-minute window to ignore same-day duplicate scans
+    const timeWindowMinutes = 2; // Change to 30 for production
+    const cutoffTime = now - (timeWindowMinutes * 60 * 1000);
     
     // Debug: Log what we found in storage
     console.log('[OB] Storage lookup for ' + stockNumber + ': found ' + history.length + ' entries');
     if (history.length > 0) {
+      const recentCount = history.filter(e => e.timestamp >= cutoffTime).length;
       console.log('[OB]   - Last 3: ' + JSON.stringify(history.slice(-3).map(e => e.price + '€@' + new Date(e.timestamp).toLocaleTimeString())));
-      console.log('[OB]   - Current time: ' + new Date().toLocaleTimeString() + ', cutoff (30m ago): ' + new Date(thirtyMinutesAgo).toLocaleTimeString());
+      console.log('[OB]   - Current time: ' + new Date().toLocaleTimeString() + ', cutoff (' + timeWindowMinutes + 'm ago): ' + new Date(cutoffTime).toLocaleTimeString());
+      console.log('[OB]   - Prices in window: ' + recentCount + '/' + history.length);
     }
     
     // Find last price that:
     // 1. Is different from current price
-    // 2. Is older than 30 minutes (different scan session, not same-day duplicate)
+    // 2. Is older than time window (different scan session)
     let prevPrice = null;
     for (let i = history.length - 1; i >= 0; i--) {
       const entry = history[i];
-      const isOldEnough = entry.timestamp < thirtyMinutesAgo;
+      const isOldEnough = entry.timestamp < cutoffTime;
       const isDifferent = entry.price !== currentPrice;
       
       if (isDifferent && isOldEnough) {
@@ -58,12 +63,12 @@ function getPreviousPrice(stockNumber, currentPrice, callback) {
         console.log('[OB]   ✓ Found valid previous price: ' + prevPrice + '€ (age: ' + Math.round((now - entry.timestamp) / 1000) + 's ago)');
         break;
       } else if (isDifferent) {
-        console.log('[OB]   ✗ Found different price but too recent: ' + entry.price + '€ (only ' + Math.round((now - entry.timestamp) / 60000) + ' min ago)');
+        console.log('[OB]   ✗ Found different price but too recent: ' + entry.price + '€ (only ' + Math.round((now - entry.timestamp) / 1000) + 's ago)');
       }
     }
     
-    if (!prevPrice) {
-      console.log('[OB]   → No valid previous price found (current=' + currentPrice + '€)');
+    if (!prevPrice && history.length > 0) {
+      console.log('[OB]   → No valid previous price found (current=' + currentPrice + '€, all prices same or too recent)');
     }
     
     callback(prevPrice);
@@ -151,12 +156,14 @@ function scanDOMPrices() {
       }
       
       // Fallback: search for any element with € symbol
+      // IMPORTANT: Track which element we use for caching!
       if (!priceText || !priceText.includes('€')) {
         const allElements = cardDiv.querySelectorAll('*');
         for (let i = 0; i < allElements.length; i++) {
           const text = allElements[i].textContent;
           if (text.includes('€') && text.match(/\d+\s*€/)) {
             priceText = text;
+            priceSpan = allElements[i]; // Update to actual element containing price
             break;
           }
         }
@@ -189,8 +196,9 @@ function scanDOMPrices() {
       console.log('[OB] ✅ ' + stockNumber + ': ' + priceEur + '€');
       
       // Cache card and priceSpan references PLUS get lastPrice immediately
+      // priceSpan is the actual element we used to extract price
       stockElementCache.set(stockNumber, { card: cardDiv, priceSpan: priceSpan });
-      console.log('[OB]   → Cached element references (cache size now: ' + stockElementCache.size + ')');
+      console.log('[OB]   → Cached element references (cache size now: ' + stockElementCache.size + ', priceSpan=' + (priceSpan ? 'YES' : 'NO') + ')');
       
       // Get previous DIFFERENT price and add badge IMMEDIATELY (synchronously in callback)
       getPreviousPrice(stockNumber, priceEur, function(prevPrice) {
@@ -235,14 +243,41 @@ function addPriceBadge(stockNumber, currentPrice, lastPrice) {
       return;
     }
     
-    console.log('[OB] ✓ Cache HIT for ' + stockNumber + ': card=' + (cached.card ? 'YES' : 'NO') + ' priceSpan=' + (cached.priceSpan ? 'YES' : 'NO'));
+    let cardDiv = cached.card;
+    let priceSpan = cached.priceSpan;
     
-    const cardDiv = cached.card;
-    const priceSpan = cached.priceSpan;
+    console.log('[OB] ✓ Cache HIT for ' + stockNumber + ': card=' + (cardDiv ? 'YES' : 'NO') + ' priceSpan=' + (priceSpan ? 'YES' : 'NO'));
     
     if (!cardDiv) {
       console.log('[OB] Cache incomplete for ' + stockNumber + ': missing card');
       return;
+    }
+    
+    // If priceSpan is missing, try to find it again
+    if (!priceSpan) {
+      console.log('[OB] ⚠️  PriceSpan missing from cache, searching in card...');
+      
+      // Try the bidValue selector first
+      priceSpan = cardDiv.querySelector('span[data-qa-id="bidValue"]');
+      
+      // If still not found, search for element with €
+      if (!priceSpan) {
+        const allElements = cardDiv.querySelectorAll('*');
+        for (let i = 0; i < allElements.length; i++) {
+          const text = allElements[i].textContent;
+          if (text.includes('€') && text.match(/\d+\s*€/) && text.match(/(\d+)/)[1] == currentPrice) {
+            priceSpan = allElements[i];
+            console.log('[OB] ✓ Found priceSpan element by search');
+            break;
+          }
+        }
+      }
+      
+      if (priceSpan) {
+        cached.priceSpan = priceSpan;
+      } else {
+        console.log('[OB] ❌ Could not find priceSpan element');
+      }
     }
     
     if (!priceSpan) {
