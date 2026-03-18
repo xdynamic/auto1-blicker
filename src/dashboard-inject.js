@@ -37,16 +37,33 @@ function getPreviousPrice(stockNumber, currentPrice, callback) {
     const now = Date.now();
     const thirtyMinutesAgo = now - (30 * 60 * 1000);
     
+    // Debug: Log what we found in storage
+    console.log('[OB] Storage lookup for ' + stockNumber + ': found ' + history.length + ' entries');
+    if (history.length > 0) {
+      console.log('[OB]   - Last 3: ' + JSON.stringify(history.slice(-3).map(e => e.price + '€@' + new Date(e.timestamp).toLocaleTimeString())));
+      console.log('[OB]   - Current time: ' + new Date().toLocaleTimeString() + ', cutoff (30m ago): ' + new Date(thirtyMinutesAgo).toLocaleTimeString());
+    }
+    
     // Find last price that:
     // 1. Is different from current price
     // 2. Is older than 30 minutes (different scan session, not same-day duplicate)
     let prevPrice = null;
     for (let i = history.length - 1; i >= 0; i--) {
       const entry = history[i];
-      if (entry.price !== currentPrice && entry.timestamp < thirtyMinutesAgo) {
+      const isOldEnough = entry.timestamp < thirtyMinutesAgo;
+      const isDifferent = entry.price !== currentPrice;
+      
+      if (isDifferent && isOldEnough) {
         prevPrice = entry.price;
+        console.log('[OB]   ✓ Found valid previous price: ' + prevPrice + '€ (age: ' + Math.round((now - entry.timestamp) / 1000) + 's ago)');
         break;
+      } else if (isDifferent) {
+        console.log('[OB]   ✗ Found different price but too recent: ' + entry.price + '€ (only ' + Math.round((now - entry.timestamp) / 60000) + ' min ago)');
       }
+    }
+    
+    if (!prevPrice) {
+      console.log('[OB]   → No valid previous price found (current=' + currentPrice + '€)');
     }
     
     callback(prevPrice);
@@ -56,6 +73,9 @@ function getPreviousPrice(stockNumber, currentPrice, callback) {
 // Scan DOM and extract stock+price pairs from dashboard cards
 function scanDOMPrices() {
   try {
+    console.log('[OB] 🔄 Starting new scan (clearing ' + stockElementCache.size + ' old cache entries)...');
+    stockElementCache.clear();
+    
     // FIRST: Try primary selector - div.dashboardCard
     let cardDivs = document.querySelectorAll('div.dashboardCard');
     
@@ -170,6 +190,7 @@ function scanDOMPrices() {
       
       // Cache card and priceSpan references PLUS get lastPrice immediately
       stockElementCache.set(stockNumber, { card: cardDiv, priceSpan: priceSpan });
+      console.log('[OB]   → Cached element references (cache size now: ' + stockElementCache.size + ')');
       
       // Get previous DIFFERENT price and add badge IMMEDIATELY (synchronously in callback)
       getPreviousPrice(stockNumber, priceEur, function(prevPrice) {
@@ -210,15 +231,22 @@ function addPriceBadge(stockNumber, currentPrice, lastPrice) {
     // Retrieve cached card and priceSpan
     const cached = stockElementCache.get(stockNumber);
     if (!cached) {
-      console.log('[OB] Cache miss for ' + stockNumber);
+      console.log('[OB] ❌ Cache MISS for ' + stockNumber + ' (cache size: ' + stockElementCache.size + ')');
       return;
     }
+    
+    console.log('[OB] ✓ Cache HIT for ' + stockNumber + ': card=' + (cached.card ? 'YES' : 'NO') + ' priceSpan=' + (cached.priceSpan ? 'YES' : 'NO'));
     
     const cardDiv = cached.card;
     const priceSpan = cached.priceSpan;
     
-    if (!cardDiv || !priceSpan) {
-      console.log('[OB] Cache incomplete for ' + stockNumber);
+    if (!cardDiv) {
+      console.log('[OB] Cache incomplete for ' + stockNumber + ': missing card');
+      return;
+    }
+    
+    if (!priceSpan) {
+      console.log('[OB] Cache incomplete for ' + stockNumber + ': missing priceSpan');
       return;
     }
     
@@ -230,10 +258,14 @@ function addPriceBadge(stockNumber, currentPrice, lastPrice) {
     }
     
     if (!priceSpan.parentNode) {
-      console.log('[OB] PriceSpan removed from DOM: ' + stockNumber);
+      console.log('[OB] ❌ PriceSpan removed from DOM: ' + stockNumber);
+      console.log('[OB]    PriceSpan classList: ' + priceSpan.className);
+      console.log('[OB]    PriceSpan currentDisplay: ' + window.getComputedStyle(priceSpan).display);
       stockElementCache.delete(stockNumber);
       return;
     }
+    
+    console.log('[OB] ✓ Both elements still in DOM for ' + stockNumber);
     
     // Remove old badge
     const oldBadge = cardDiv.querySelector('[data-ob-badge]');
