@@ -277,32 +277,6 @@
   margin: 2px 0;
 }
 
-/* Price change indicator */
-.ob-price-change {
-  grid-column: 1 / -1;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 0;
-  text-align: center;
-}
-
-.ob-price-change.up {
-  color: #ff6b6b;
-}
-
-.ob-price-change.down {
-  color: #51cf66;
-}
-
-.ob-price-change.stable {
-  color: #74c0fc;
-}
-
-.ob-price-change.tracked {
-  color: #ffd93d;
-  font-size: 11px;
-}
-
 /* ── Otomoto Stats ─────────────────────────────────────────────── */
 .ob-stats-grid {
   display: grid;

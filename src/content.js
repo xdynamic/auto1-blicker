@@ -28,68 +28,6 @@
   let eurRate = 4.3;
   let marketMode = 'PL';
 
-  // Price tracking helpers
-  async function savePriceHistory(stockNumber, priceEur) {
-    if (!stockNumber || !priceEur) return;
-    try {
-      const key = `ob_price_${stockNumber}`;
-      const history = await chrome.storage.local.get([key]);
-      const prices = history[key] || [];
-      prices.push({
-        price: priceEur,
-        timestamp: Date.now()
-      });
-      // Keep only last 30 records to avoid bloat
-      const keepLast = prices.slice(-30);
-      await chrome.storage.local.set({ [key]: keepLast });
-      console.log(`[OB] Saved price for ${stockNumber}: ${priceEur}€`);
-    } catch (e) {
-      console.error('[OB] Error saving price history:', e);
-    }
-  }
-
-  async function getPriceHistory(stockNumber) {
-    if (!stockNumber) return [];
-    try {
-      const key = `ob_price_${stockNumber}`;
-      const history = await chrome.storage.local.get([key]);
-      return history[key] || [];
-    } catch (e) {
-      console.error('[OB] Error reading price history:', e);
-      return [];
-    }
-  }
-
-  function calculatePriceChange(priceHistory) {
-    if (!priceHistory || priceHistory.length === 0) return null;
-    
-    const current = priceHistory[priceHistory.length - 1].price;
-    
-    // Jeśli tylko 1 rekord, pokaż że cena jest śledzana
-    if (priceHistory.length === 1) {
-      const timeAgo = new Date(priceHistory[0].timestamp);
-      return {
-        change: 0,
-        changePercent: '0.0',
-        trend: '📌',
-        trendClass: 'tracked',
-        tracked: true,
-        timestamp: timeAgo
-      };
-    }
-    
-    // Jeśli 2+ rekordy, pokaż zmianę
-    const previous = priceHistory[priceHistory.length - 2].price;
-    const change = current - previous;
-    const changePercent = ((change / previous) * 100).toFixed(1);
-    return {
-      change,
-      changePercent,
-      trend: change > 0 ? '↑' : change < 0 ? '↓' : '→',
-      trendClass: change > 0 ? 'up' : change < 0 ? 'down' : 'stable'
-    };
-  }
-
   const strings = {
     PL: {
       matchTitle: '🎯 Dopasowanie',
@@ -262,11 +200,6 @@
       ? feeCalculator.convertToPln(totalPrice.total, eurRate)
       : 0;
 
-    // Price tracking
-    await savePriceHistory(carData.stockNumber, carData.priceEur);
-    const priceHistory = await getPriceHistory(carData.stockNumber);
-    const priceChange = calculatePriceChange(priceHistory);
-
     const listing = marketMode === 'DE'
       ? { url: buildMobileUrl(carData, matchResult), market: 'mobile' }
       : { url: otomotoUrl, market: 'otomoto' };
@@ -286,8 +219,7 @@
       totalPrice,
       totalPricePln,
       eurRate,
-      feesUnavailable,
-      priceChange
+      feesUnavailable
     }, priceStats);
   }
 
@@ -466,7 +398,6 @@
             <div class="ob-price-divider"></div>
             <span class="ob-price-label">${t().totalEurLabel}</span>
             <span class="ob-price-value total">${data.totalPrice.total === 0 ? '—' : Helpers.formatPrice(data.totalPrice.total, 'EUR')}</span>
-            ${data.priceChange ? `<span class="ob-price-change ${data.priceChange.trendClass}">${data.priceChange.tracked ? '📌 Cena śledzana' : `${data.priceChange.trend} ${Math.abs(data.priceChange.change).toFixed(0)}€ (${data.priceChange.changePercent}%)`}</span>` : ''}
             ${isDE ? '' : `
               <span class="ob-price-label">${t().totalPlnLabel}</span>
               <span class="ob-price-value pln">${data.totalPricePln === 0 ? '—' : Helpers.formatPrice(data.totalPricePln, 'PLN')}</span>

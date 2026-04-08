@@ -34,16 +34,6 @@
             "css": [
                 "src/ui/styles.css"
             ]
-        },
-        {
-            "matches": [
-                "https://*.auto1.com/*/app/dashboard*",
-                "https://*.auto1.com/**/merchant-dashboard*"
-            ],
-            "js": [
-                "src/dashboard-inject.js"
-            ],
-            "run_at": "document_start"
         }
     ],
     "action": {
