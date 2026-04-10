@@ -33,7 +33,7 @@ const Helpers = {
 
   // Pobierz stock number z URL
   getStockNumberFromUrl() {
-    const match = window.location.pathname.match(/\/car\/(DX\d+)/i);
+    const match = window.location.pathname.match(/\/car\/([A-Z]{2}\d{5})\b/i);
     return match ? match[1] : null;
   },
 

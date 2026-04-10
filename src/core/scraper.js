@@ -39,7 +39,11 @@ class Auto1Scraper {
       '.ctaBar__name span',
       '.car-info-title h2',
       'h2.no-score',
-      '[data-qa-id="car-title"]'
+      '[data-qa-id="car-title"]',
+      '[data-qa-id="carTitle"] a',
+      '[data-qa-id="carTitle"]',
+      'h1',
+      'main h2'
     ];
 
     for (const selector of selectors) {
@@ -49,6 +53,23 @@ class Auto1Scraper {
         this.parseTitle(this.data.title);
         return;
       }
+    }
+
+    const metaTitle = document.querySelector('meta[property="og:title"]')?.content?.trim();
+    if (metaTitle) {
+      this.data.title = metaTitle;
+      this.parseTitle(this.data.title);
+      return;
+    }
+
+    const documentTitle = document.title
+      .replace(/\s*[|\-].*$/, '')
+      .replace(/^Auto1\s*/i, '')
+      .trim();
+
+    if (documentTitle && /[a-ząćęłńóśźż]/i.test(documentTitle)) {
+      this.data.title = documentTitle;
+      this.parseTitle(this.data.title);
     }
   }
 
@@ -96,13 +117,47 @@ class Auto1Scraper {
   }
 
   scrapeStockNumber() {
-    const urlMatch = window.location.pathname.match(/\/car\/(DX\d+)/i);
+    const urlMatch = window.location.pathname.match(/\/car\/([A-Z]{2}\d{5})\b/i);
     if (urlMatch) {
       this.data.stockNumber = urlMatch[1];
+      return;
+    }
+
+    const bodyText = document.body?.textContent || '';
+    const textMatch = bodyText.match(/Numer\s+wewnętrzny:\s*([A-Z]{2}\d{5})\b/i);
+    if (textMatch) {
+      this.data.stockNumber = textMatch[1].toUpperCase();
     }
   }
 
   scrapeTechnicalData() {
+    const detailItems = [
+      ['[data-qa-id="firstRegistrationDate"]', (value) => {
+        const yearMatch = value.match(/\b(19|20)\d{2}\b/);
+        if (yearMatch) this.data.year = yearMatch[0];
+      }],
+      ['[data-qa-id="km"]', (value) => {
+        this.data.mileage = parseInt(value.replace(/\D/g, ''), 10) || this.data.mileage;
+      }],
+      ['[data-qa-id="fuelType"]', (value) => {
+        this.data.fuel = value.trim();
+      }],
+      ['[data-qa-id="gearType"]', (value) => {
+        this.parseSpecRow('transmission', value);
+      }],
+      ['[data-qa-id="power"]', (value) => {
+        this.parseSpecRow('power', value);
+      }],
+      ['[data-qa-id="engineCapacity"]', (value) => {
+        this.parseSpecRow('capacity', value);
+      }]
+    ];
+
+    detailItems.forEach(([selector, applyValue]) => {
+      const value = document.querySelector(selector)?.textContent?.trim();
+      if (value) applyValue(value);
+    });
+
     // Auto1 używa tabel HTML: <tr><td>Label:</td><td>Value</td></tr>
     const rows = document.querySelectorAll('tr');
     
@@ -202,6 +257,9 @@ class Auto1Scraper {
     // Auto1 ma cenę w różnych miejscach - sprawdź wszystkie
     const selectors = [
       '[data-qa-id="car-price"]',
+      '[data-qa-id="bidValue"] .value-inner',
+      '[data-qa-id="bidValue"]',
+      '[data-qa-id="buyNowPrice"]',
       '.car-price',
       '.price-value',
       '.ctaBar__price',
@@ -244,6 +302,12 @@ class Auto1Scraper {
   }
 
   scrapeLocation() {
+    const directLocation = document.querySelector('[data-qa-id="address"]')?.textContent?.trim();
+    if (directLocation) {
+      this.data.location = directLocation;
+      return;
+    }
+
     const rows = document.querySelectorAll('.car-details-list .item, .simple-list .item');
     
     rows.forEach(row => {
@@ -259,6 +323,14 @@ class Auto1Scraper {
         this.data.location = value;
       }
     });
+
+    if (!this.data.location) {
+      const bodyText = document.body?.textContent || '';
+      const match = bodyText.match(/\b([A-Z]{2},\s*[^\n]+|DE,\s*[^\n]+|PL,\s*[^\n]+)\b/);
+      if (match) {
+        this.data.location = match[1].trim();
+      }
+    }
   }
 
   scrapeAuctionFee() {

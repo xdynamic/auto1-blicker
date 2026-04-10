@@ -6,7 +6,10 @@
 
   const VERSION = '3.0.0';
   const AUTO1_FEES_PDF_URL = 'https://content.auto1.com/static/car_images/price_list_de_2026-01-01.pdf';
+  const STORAGE_KEY_ENABLED = 'ob_extension_enabled';
   const STORAGE_KEY_MARKET = 'ob_market_mode';
+  let isExtensionEnabled = true;
+  let currentRunId = 0;
   console.log(`%c OB v${VERSION} %c loaded `, 
     'background:#1562d6;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px;', 
     'background:#0d1117;color:#fff;padding:2px 6px;');
@@ -87,6 +90,55 @@
     return strings[marketMode] || strings.PL;
   }
 
+  function removePanel() {
+    document.getElementById('ob-panel-v3')?.remove();
+  }
+
+  function isRunCancelled(runId) {
+    return !isExtensionEnabled || runId !== currentRunId;
+  }
+
+  async function loadExtensionEnabled() {
+    try {
+      const stored = await chrome.storage.local.get([STORAGE_KEY_ENABLED]);
+      isExtensionEnabled = stored[STORAGE_KEY_ENABLED] !== false;
+    } catch (_e) {
+      isExtensionEnabled = true;
+    }
+  }
+
+  async function handleExtensionToggle(enabled) {
+    isExtensionEnabled = enabled;
+
+    if (!enabled) {
+      currentRunId += 1;
+      removePanel();
+      return;
+    }
+
+    if (!window.location.pathname.includes('/car/')) {
+      return;
+    }
+
+    await main().catch(error => {
+      Helpers.error('Fatal error:', error);
+      renderErrorPanel(t().errFatal);
+    });
+  }
+
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local' || !changes[STORAGE_KEY_ENABLED]) {
+      return;
+    }
+
+    const nextEnabled = changes[STORAGE_KEY_ENABLED].newValue !== false;
+    if (nextEnabled === isExtensionEnabled) {
+      return;
+    }
+
+    handleExtensionToggle(nextEnabled);
+  });
+
   async function loadMarketMode() {
     try {
       const stored = await chrome.storage.local.get([STORAGE_KEY_MARKET]);
@@ -135,11 +187,27 @@
 
   // Główna funkcja
   async function main() {
+    const runId = ++currentRunId;
     Helpers.log('Starting analysis...');
 
+    await loadExtensionEnabled();
+    if (isRunCancelled(runId)) {
+      removePanel();
+      return;
+    }
+
     await loadMarketMode();
+    if (isRunCancelled(runId)) {
+      removePanel();
+      return;
+    }
 
     const loaded = await loadData();
+    if (isRunCancelled(runId)) {
+      removePanel();
+      return;
+    }
+
     if (!loaded) {
       renderErrorPanel(t().errLoadData);
       return;
@@ -148,7 +216,11 @@
     // Renderuj panel natychmiast ze stanem ładowania
     renderLoadingPanel();
 
-    await Helpers.waitForElement('.ctaBar__name, .car-info-title', 10000).catch(() => {});
+    await Helpers.waitForElement('.ctaBar__name, .car-info-title, [data-qa-id="carTitle"], h1', 10000).catch(() => {});
+    if (isRunCancelled(runId)) {
+      removePanel();
+      return;
+    }
 
     const carData = scraper.scrape();
     Helpers.log('Car data:', carData);
@@ -207,6 +279,10 @@
     const priceStats = await (listing.market === 'mobile'
       ? Promise.resolve(null) // tryb DE: tylko link, bez statystyk
       : fetchPricesFromOtomoto(listing.url));
+    if (isRunCancelled(runId)) {
+      removePanel();
+      return;
+    }
 
     // Renderuj pełny panel
     renderPanel({

@@ -3,6 +3,7 @@
 
 const CACHE_KEY = 'eur_pln_rate';
 const CACHE_DURATION = 3600000; // 1 godzina
+const STORAGE_KEY_ENABLED = 'ob_extension_enabled';
 
 const OTOMOTO_CACHE_TTL = 5 * 60 * 1000; // 5 minut
 const otomotoPriceCache = new Map(); // url -> { data, timestamp }
@@ -10,37 +11,86 @@ const otomotoPriceCache = new Map(); // url -> { data, timestamp }
 const MOBILE_CACHE_TTL = 5 * 60 * 1000; // 5 minut
 const mobilePriceCache = new Map(); // url -> { data, timestamp }
 
+async function isExtensionEnabled() {
+  try {
+    const stored = await chrome.storage.local.get([STORAGE_KEY_ENABLED]);
+    return stored[STORAGE_KEY_ENABLED] !== false;
+  } catch (_error) {
+    return true;
+  }
+}
+
+async function updateActionState() {
+  const enabled = await isExtensionEnabled();
+
+  await chrome.action.setBadgeBackgroundColor({
+    color: enabled ? '#1c7c54' : '#9a3412'
+  });
+  await chrome.action.setBadgeText({
+    text: enabled ? '' : 'OFF'
+  });
+  await chrome.action.setTitle({
+    title: enabled ? 'Auction Blicker: włączone' : 'Auction Blicker: wyłączone'
+  });
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('[Background] Received message:', request.action);
+
+  if (request.action === 'GET_EXTENSION_STATE') {
+    isExtensionEnabled().then(enabled => sendResponse({ enabled }));
+    return true;
+  }
   
   if (request.action === 'GET_EUR_RATE') {
-    getEurRate().then(rate => {
-      console.log('[Background] Sending EUR rate:', rate);
-      sendResponse(rate);
+    isExtensionEnabled().then(enabled => {
+      if (!enabled) {
+        sendResponse(4.3);
+        return;
+      }
+
+      getEurRate().then(rate => {
+        console.log('[Background] Sending EUR rate:', rate);
+        sendResponse(rate);
+      });
     });
     return true;
   }
   
   if (request.action === 'FETCH_OTOMOTO_PRICES') {
-    console.log('[Background] Fetching Otomoto prices for:', request.url);
-    fetchOtomotoPrices(request.url).then(prices => {
-      console.log('[Background] Sending prices:', prices);
-      sendResponse(prices);
-    }).catch(error => {
-      console.error('[Background] Fetch error:', error);
-      sendResponse(null);
+    isExtensionEnabled().then(enabled => {
+      if (!enabled) {
+        sendResponse(null);
+        return;
+      }
+
+      console.log('[Background] Fetching Otomoto prices for:', request.url);
+      fetchOtomotoPrices(request.url).then(prices => {
+        console.log('[Background] Sending prices:', prices);
+        sendResponse(prices);
+      }).catch(error => {
+        console.error('[Background] Fetch error:', error);
+        sendResponse(null);
+      });
     });
     return true;
   }
 
   if (request.action === 'FETCH_MOBILE_PRICES') {
-    console.log('[Background] Fetching Mobile.de prices for:', request.url);
-    fetchMobilePrices(request.url).then(prices => {
-      console.log('[Background] Sending Mobile.de prices:', prices);
-      sendResponse(prices);
-    }).catch(error => {
-      console.error('[Background] Mobile fetch error:', error);
-      sendResponse({ error: true });
+    isExtensionEnabled().then(enabled => {
+      if (!enabled) {
+        sendResponse({ error: true });
+        return;
+      }
+
+      console.log('[Background] Fetching Mobile.de prices for:', request.url);
+      fetchMobilePrices(request.url).then(prices => {
+        console.log('[Background] Sending Mobile.de prices:', prices);
+        sendResponse(prices);
+      }).catch(error => {
+        console.error('[Background] Mobile fetch error:', error);
+        sendResponse({ error: true });
+      });
     });
     return true;
   }
@@ -213,5 +263,20 @@ console.log('[OB Background] Service worker initialized');
 // Test przy inicjalizacji
 chrome.runtime.onInstalled.addListener(() => {
   console.log('[OB Background] Extension installed');
-  getEurRate();
+  updateActionState();
+  isExtensionEnabled().then(enabled => {
+    if (enabled) getEurRate();
+  });
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  updateActionState();
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local' || !changes[STORAGE_KEY_ENABLED]) {
+    return;
+  }
+
+  updateActionState();
 });
